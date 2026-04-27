@@ -79,7 +79,7 @@ const iconLinks = configuredIcons.length
 <script is:inline>
 	(() => {
 		const stored = localStorage.getItem('theme');
-		const theme = stored ?? 'dark';
+		const theme = stored ?? 'light';
 		document.documentElement.dataset.theme = theme;
 	})();
 </script>
