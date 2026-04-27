@@ -6,7 +6,7 @@ import { defineConfig, fontProviders } from 'astro/config';
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://www.runawayshame.com',
+	site: 'https://jekyloco.github.io',
 	devToolbar: { enabled: false },
 	integrations: [mdx(), sitemap()],
 	fonts: [
