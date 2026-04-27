@@ -46,11 +46,19 @@ html[data-theme='dark'] {
 	--home-hero-overlay-rgb: 0, 0, 0;
 }
 
+html,
+body {
+	height: 100%;
+}
+
 body {
 	font-family: var(--font-atkinson);
 	margin: 0;
 	padding: 0;
 	text-align: left;
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
 	background: rgb(var(--bg));
 	background-image: linear-gradient(rgba(var(--bg), var(--site-bg-overlay)),
 			rgba(var(--bg), var(--site-bg-overlay))),
@@ -74,6 +82,7 @@ main {
 	max-width: var(--container);
 	margin: 0 auto;
 	padding: 2.5rem 1rem 3.75rem;
+	flex: 1;
 }
 
 main.home-main {

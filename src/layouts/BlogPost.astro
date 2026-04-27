@@ -27,22 +27,38 @@ const { title, description, pubDate, updatedDate, heroImage, tags = [], lang, mi
 				max-width: 1120px;
 				margin: 0 auto;
 			}
-			.post-hero {
-				margin: 1.25rem 0 1rem;
+			.post-header {
+				display: grid;
+				grid-template-columns: 1fr minmax(220px, 360px);
+				gap: 1.25rem;
+				align-items: stretch;
+				padding: 0.25rem 0 1rem;
 			}
-			.post-hero img {
-				display: block;
+			.post-header-main {
+				margin: 30px 0;
+				min-width: 0;
+				display: flex;
+				flex-direction: column;
+				justify-content: space-between;
+				align-self: stretch;
+			}
+			.post-header-media {
 				width: 100%;
-				height: auto;
 				border-radius: 16px;
 				border: 1px solid rgb(var(--border));
 				box-shadow: var(--shadow);
+				overflow: hidden;
+				aspect-ratio: 16 / 10;
+				background: rgba(var(--card), var(--card-alpha, 0.84));
 			}
-			.post-header {
-				padding: 0.25rem 0 1rem;
+			.post-header-media img {
+				display: block;
+				width: 100%;
+				height: 100%;
+				object-fit: cover;
 			}
 			.post-title {
-				margin: 0.5rem 0 0.75rem;
+				margin: 0;
 				letter-spacing: -0.02em;
 			}
 			.post-meta {
@@ -54,7 +70,7 @@ const { title, description, pubDate, updatedDate, heroImage, tags = [], lang, mi
 				font-size: 0.9rem;
 			}
 			.post-tags {
-				margin-top: 0.75rem;
+				margin-top: 0;
 				display: flex;
 				flex-wrap: wrap;
 				gap: 0.5rem;
@@ -72,6 +88,20 @@ const { title, description, pubDate, updatedDate, heroImage, tags = [], lang, mi
 				line-height: var(--prose-line-height, 1.95);
 				font-family: var(--prose-font-family, var(--font-atkinson));
 			}
+			@media (max-width: 860px) {
+				.post-header {
+					grid-template-columns: 1fr;
+					align-items: start;
+				}
+				.post-header-media {
+					order: -1;
+					max-width: 560px;
+				}
+				.post-header-main {
+					justify-content: flex-start;
+					gap: 0.75rem;
+				}
+			}
 		</style>
 	</head>
 
@@ -79,30 +109,32 @@ const { title, description, pubDate, updatedDate, heroImage, tags = [], lang, mi
 		<Header />
 		<main>
 			<article class="post">
-				{heroImage && (
-					<div class="post-hero">
-						<img src={heroImage.src} width="1200" height="600" alt="" loading="lazy" />
-					</div>
-				)}
 				<header class="post-header">
-					<div class="post-meta">
-						<span><FormattedDate date={pubDate} /></span>
-						{typeof minutes === 'number' && <span>{minutes} min</span>}
-						{lang && <span>{lang}</span>}
-						{updatedDate && (
-							<span>
-								Updated <FormattedDate date={updatedDate} />
-							</span>
+					<div class="post-header-main">
+						<div class="post-meta">
+							<span><FormattedDate date={pubDate} /></span>
+							{typeof minutes === 'number' && <span>{minutes} min</span>}
+							{lang && <span>{lang}</span>}
+							{updatedDate && (
+								<span>
+									Updated <FormattedDate date={updatedDate} />
+								</span>
+							)}
+						</div>
+						<h1 class="post-title">{title}</h1>
+						{tags.length > 0 && (
+							<div class="post-tags">
+								{tags.map((tag) => (
+									<a class="badge" href={`/blog?tag=${encodeURIComponent(tag)}`}>
+										{tag}
+									</a>
+								))}
+							</div>
 						)}
 					</div>
-					<h1 class="post-title">{title}</h1>
-					{tags.length > 0 && (
-						<div class="post-tags">
-							{tags.map((tag) => (
-								<a class="badge" href={`/blog?tag=${encodeURIComponent(tag)}`}>
-									{tag}
-								</a>
-							))}
+					{heroImage && (
+						<div class="post-header-media" aria-hidden="true">
+							<img src={heroImage.src} width="720" height="450" alt="" loading="lazy" />
 						</div>
 					)}
 				</header>
