@@ -1,6 +1,6 @@
 ---
-title: 'Third post'
-description: 'Lorem ipsum dolor sit amet'
+title: '列文独白'
+description: '这是一个秘密，只我一个人需要，重大而无法用语言来表达'
 pubDate: 'Jul 22 2022'
 heroImage: '../../assets/blog-placeholder-2.jpg'
 tags:

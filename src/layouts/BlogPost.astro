@@ -102,12 +102,24 @@ const { title, description, pubDate, updatedDate, heroImage, tags = [], lang, mi
 					gap: 0.75rem;
 				}
 			}
+			@media (max-width: 720px) {
+				.post-main {
+					padding-left: 0;
+					padding-right: 0;
+				}
+				.post-content {
+					border-left: 0;
+					border-right: 0;
+					border-radius: 0;
+					padding: 1rem var(--page-gutter) 0.85rem;
+				}
+			}
 		</style>
 	</head>
 
 	<body>
 		<Header />
-		<main>
+		<main class="post-main">
 			<article class="post">
 				<header class="post-header">
 					<div class="post-header-main">
