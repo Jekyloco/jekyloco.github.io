@@ -1,0 +1,83 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import { getCollection } from 'astro:content';
+import FormattedDate from '../components/FormattedDate.astro';
+import FallbackImage from '../assets/blog-placeholder-1.jpg';
+import HomeHeroImage from '../images/image_250109_13.jpg';
+
+const posts = (await getCollection('blog'))
+	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+	.slice(0, 4);
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+	</head>
+	<body>
+		<Header />
+		<main class="home-main">
+			<section
+				class="home-hero"
+				aria-label="Intro"
+				style={`--home-hero-image: url(${HomeHeroImage.src})`}
+			>
+				<div class="container home-hero-inner">
+					<div class="home-hero-content">
+						<div class="home-hero-primary">
+							<div class="home-hero-top">
+								<div>
+									<h1 class="home-hero-title">{SITE_TITLE}</h1>
+									<p class="home-hero-subtitle">{SITE_DESCRIPTION}</p>
+								</div>
+								<a class="badge" href="/blog">Go to Blog</a>
+							</div>
+						</div>
+						<div class="home-hero-secondary">
+							<p class="home-hero-intro">
+								無駄だ　ここは元から楽しい地獄だ<br />
+								生まれ落ちた時から　出口はないんだ<br />
+								<br />
+								いつも窓の外の　憧れを眺めて<br />
+								希望に似た花が　女のように笑うさまに<br />
+								手を伸ばした
+							</p>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<section class="home-section container" aria-label="Latest">
+				<h2 class="home-section-title">Latest</h2>
+				<div class="post-list">
+					{posts.map((post) => (
+						<a class="card card-hover post-card" href={`/blog/${post.id}/`}>
+							<div class="post-card-main">
+								<div class="post-card-meta">
+									<span><FormattedDate date={post.data.pubDate} /></span>
+									<span>{post.data.lang}</span>
+								</div>
+								<h3 class="post-card-title">{post.data.title}</h3>
+								<p class="post-card-desc">{post.data.description}</p>
+							</div>
+							<div class="post-card-thumb" aria-hidden="true">
+								<img
+									src={post.data.heroImage?.src ?? FallbackImage.src}
+									width="440"
+									height="300"
+									alt=""
+									loading="lazy"
+								/>
+							</div>
+						</a>
+					))}
+				</div>
+			</section>
+		</main>
+		<Footer />
+	</body>
+</html>

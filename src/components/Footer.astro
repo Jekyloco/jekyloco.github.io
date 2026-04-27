@@ -1,0 +1,23 @@
+---
+const today = new Date();
+---
+
+<footer>
+	<div class="footer-inner container">
+		<span>&copy; {today.getFullYear()} {Astro.site?.hostname ?? 'My Blog'}</span>
+	</div>
+</footer>
+<style>
+	footer {
+		padding: 2.5rem 0 3.5rem;
+		color: rgb(var(--gray));
+		border-top: 1px solid rgb(var(--border));
+		background: rgba(var(--bg), 0.6);
+		backdrop-filter: saturate(140%) blur(14px);
+		-webkit-backdrop-filter: saturate(140%) blur(14px);
+	}
+	.footer-inner {
+		display: flex;
+		justify-content: center;
+	}
+</style>

@@ -1,0 +1,30 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={`Docs · ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+	</head>
+	<body>
+		<Header />
+		<main>
+			<div class="page-header">
+				<div>
+					<h1 class="page-title">Docs</h1>
+					<p class="page-subtitle">Notes and documentation for the blog.</p>
+				</div>
+			</div>
+			<div class="card sidebar-card">
+				<p style="margin: 0; color: rgb(var(--gray));">
+					Add your documentation content here. This page exists to match the top navigation of the theme.
+				</p>
+			</div>
+		</main>
+		<Footer />
+	</body>
+</html>
