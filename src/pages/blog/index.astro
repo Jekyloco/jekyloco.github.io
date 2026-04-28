@@ -10,6 +10,8 @@ const posts = (await getCollection('blog')).sort(
 	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
 );
 
+const normalizeSearchText = (text?: string) => (text ?? '').replace(/\s+/g, ' ').trim();
+
 function estimateReadingMinutes(text?: string) {
 	const words = (text ?? '').trim().split(/\s+/).filter(Boolean).length;
 	return Math.max(1, Math.round(words / 200));
@@ -72,6 +74,7 @@ const archives: ArchiveItem[] = [...archiveCounts.entries()]
 										data-title={post.data.title}
 										data-description={post.data.description}
 										data-tags={tags.join(',')}
+										data-body={normalizeSearchText(post.body)}
 										data-ym={ym}
 									>
 										<div class="post-card-main">
@@ -236,7 +239,9 @@ const archives: ArchiveItem[] = [...archiveCounts.entries()]
 						filtered = filtered.filter((el) => {
 							const title = (el.getAttribute('data-title') ?? '').toLowerCase();
 							const desc = (el.getAttribute('data-description') ?? '').toLowerCase();
-							return title.includes(q) || desc.includes(q);
+							const tags = (el.getAttribute('data-tags') ?? '').toLowerCase();
+							const body = (el.getAttribute('data-body') ?? '').toLowerCase();
+							return title.includes(q) || desc.includes(q) || tags.includes(q) || body.includes(q);
 						});
 					}
 
