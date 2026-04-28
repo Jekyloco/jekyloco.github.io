@@ -3,6 +3,8 @@ name: Deploy Astro to GitHub Pages
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [search_codex]  # 当有针对 main 的合并请求时触发
   workflow_dispatch:
 
 permissions:
