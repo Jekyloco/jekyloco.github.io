@@ -1,4 +1,4 @@
----
+﻿---
 import { getCollection } from 'astro:content';
 import BaseHead from '../../components/BaseHead.astro';
 import Footer from '../../components/Footer.astro';
@@ -46,15 +46,15 @@ const archives: ArchiveItem[] = [...archiveCounts.entries()]
 <!doctype html>
 <html lang="en">
 	<head>
-		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+		<BaseHead title={`Posts · ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
 	</head>
 	<body>
 		<Header />
 		<main>
 			<div class="page-header">
 				<div>
-					<h1 class="page-title">Blog</h1>
-					<p class="page-subtitle" id="page-subtitle">Loading…</p>
+					<h1 class="page-title">Posts</h1>
+					<p class="page-subtitle" id="page-subtitle">Loading...</p>
 				</div>
 			</div>
 
@@ -133,7 +133,7 @@ const archives: ArchiveItem[] = [...archiveCounts.entries()]
 							id="blog-search"
 							class="sidebar-input"
 							type="search"
-							placeholder="Search posts…"
+							placeholder="Search posts..."
 							autocomplete="off"
 						/>
 					</div>
@@ -192,11 +192,22 @@ const archives: ArchiveItem[] = [...archiveCounts.entries()]
 		</main>
 		<Footer />
 
-		<script is:inline>
+		<script is:inline data-astro-rerun>
 			(() => {
+				if (window.__postsPageCleanup) window.__postsPageCleanup();
+
+				const cleanups = [];
+				const on = (target, event, handler, options) => {
+					target.addEventListener(event, handler, options);
+					cleanups.push(() => target.removeEventListener(event, handler, options));
+				};
+
 				const pageSubtitle = document.getElementById('page-subtitle');
 				const list = document.getElementById('post-list');
 				if (!pageSubtitle || !list) return;
+				window.__postsPageCleanup = () => {
+					for (const cleanup of cleanups) cleanup();
+				};
 
 				const pagination = document.getElementById('pagination');
 				const prev = document.getElementById('prev-page');
@@ -259,7 +270,7 @@ const archives: ArchiveItem[] = [...archiveCounts.entries()]
 					if (tag) parts.push(`Tag: ${tag}`);
 					if (ym) parts.push(`Archive: ${ym}`);
 					if (qRaw) parts.push(`Query: ${qRaw}`);
-					pageSubtitle.textContent = parts.join(' · ');
+					pageSubtitle.textContent = parts.join(' / ');
 
 					if (pagination && prev && next) {
 						pagination.hidden = pages <= 1;
@@ -303,12 +314,12 @@ const archives: ArchiveItem[] = [...archiveCounts.entries()]
 
 				if (searchInput instanceof HTMLInputElement) {
 					let composing = false;
-					searchInput.addEventListener('compositionstart', () => (composing = true));
-					searchInput.addEventListener('compositionend', () => {
+					on(searchInput, 'compositionstart', () => (composing = true));
+					on(searchInput, 'compositionend', () => {
 						composing = false;
 						setParams({ q: searchInput.value.trim() });
 					});
-					searchInput.addEventListener('input', () => {
+					on(searchInput, 'input', () => {
 						if (composing) return;
 						setParams({ q: searchInput.value.trim() });
 					});
@@ -316,7 +327,7 @@ const archives: ArchiveItem[] = [...archiveCounts.entries()]
 
 				const filterLinks = Array.from(document.querySelectorAll('[data-tag-link],[data-filter-tag],[data-archive-link]'));
 				for (const link of filterLinks) {
-					link.addEventListener('click', (e) => {
+					on(link, 'click', (e) => {
 						const a = e.currentTarget;
 						if (!(a instanceof HTMLAnchorElement)) return;
 						const tag = a.getAttribute('data-tag-link') ?? a.getAttribute('data-filter-tag');
@@ -327,7 +338,7 @@ const archives: ArchiveItem[] = [...archiveCounts.entries()]
 					});
 				}
 
-				window.addEventListener('popstate', apply);
+				on(window, 'popstate', apply);
 				apply();
 			})();
 		</script>

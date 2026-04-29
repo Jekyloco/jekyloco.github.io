@@ -1,4 +1,4 @@
----
+﻿---
 import { getCollection } from 'astro:content';
 import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
@@ -23,9 +23,9 @@ const normalizeSearchText = (text?: string) => (text ?? '').replace(/\s+/g, ' ')
 		<main>
 			<div class="page-header">
 				<div>
-					<a class="badge" href="/blog">Back</a>
+					<a class="badge" href="/blog">Back to Posts</a>
 					<h1 class="page-title">Search</h1>
-					<p class="page-subtitle" id="search-subtitle">Type to search posts…</p>
+					<p class="page-subtitle" id="search-subtitle">Type to search posts...</p>
 				</div>
 			</div>
 
@@ -34,7 +34,7 @@ const normalizeSearchText = (text?: string) => (text ?? '').replace(/\s+/g, ' ')
 					id="search-input"
 					class="sidebar-input"
 					type="search"
-					placeholder="Search by title / description / tag…"
+					placeholder="Search by title / description / tag..."
 					autocomplete="off"
 				/>
 			</div>
@@ -63,12 +63,23 @@ const normalizeSearchText = (text?: string) => (text ?? '').replace(/\s+/g, ' ')
 		</main>
 		<Footer />
 
-		<script is:inline>
+		<script is:inline data-astro-rerun>
 			(() => {
+				if (window.__searchPageCleanup) window.__searchPageCleanup();
+
+				const cleanups = [];
+				const on = (target, event, handler, options) => {
+					target.addEventListener(event, handler, options);
+					cleanups.push(() => target.removeEventListener(event, handler, options));
+				};
+
 				const input = document.getElementById('search-input');
 				const subtitle = document.getElementById('search-subtitle');
 				const list = document.getElementById('search-results');
 				if (!(input instanceof HTMLInputElement) || !subtitle || !list) return;
+				window.__searchPageCleanup = () => {
+					for (const cleanup of cleanups) cleanup();
+				};
 
 				const cards = Array.from(list.querySelectorAll('a[data-title]'));
 				const params = new URLSearchParams(window.location.search);
@@ -88,7 +99,7 @@ const normalizeSearchText = (text?: string) => (text ?? '').replace(/\s+/g, ' ')
 						el.hidden = !ok;
 						if (ok) shown += 1;
 					}
-					subtitle.textContent = qRaw ? `Showing ${shown} result(s) for "${qRaw}"` : 'Type to search posts…';
+					subtitle.textContent = qRaw ? `Showing ${shown} result(s) for "${qRaw}"` : 'Type to search posts...';
 				};
 
 				const syncUrl = () => {
@@ -100,13 +111,13 @@ const normalizeSearchText = (text?: string) => (text ?? '').replace(/\s+/g, ' ')
 				};
 
 				let composing = false;
-				input.addEventListener('compositionstart', () => (composing = true));
-				input.addEventListener('compositionend', () => {
+				on(input, 'compositionstart', () => (composing = true));
+				on(input, 'compositionend', () => {
 					composing = false;
 					syncUrl();
 					apply();
 				});
-				input.addEventListener('input', () => {
+				on(input, 'input', () => {
 					if (composing) return;
 					syncUrl();
 					apply();

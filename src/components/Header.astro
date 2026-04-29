@@ -1,7 +1,47 @@
 ---
+import { existsSync, readdirSync } from 'node:fs';
+import { basename, extname, join } from 'node:path';
 import { SITE_TITLE } from '../consts';
 import LogoImage from '../images/logo.jpg';
+import { SITE_CONFIG } from '../site.config';
 import HeaderLink from './HeaderLink.astro';
+
+const musicConfig = SITE_CONFIG.music;
+const musicRandom = musicConfig.random === true;
+const musicAutoplay = musicConfig.autoplay === true;
+const musicLoop = musicConfig.loop !== false;
+const musicPreload = musicConfig.preload ?? 'auto';
+const musicLrc = musicConfig.lrc ?? '';
+const musicLrcEncoding = musicConfig.lrcEncoding ?? 'utf-8';
+const musicLang = musicConfig.lang ?? 'ja';
+const mediaDir = join(process.cwd(), 'public', 'media');
+const mediaFiles = existsSync(mediaDir) ? readdirSync(mediaDir) : [];
+const lrcFiles = new Map(
+	mediaFiles
+		.filter((file) => extname(file).toLowerCase() === '.lrc')
+		.map((file) => [basename(file, extname(file)).toLowerCase(), file]),
+);
+const mediaPath = (file: string) => `/media/${encodeURIComponent(file)}`;
+const scannedPlaylist = mediaFiles
+	.filter((file) => extname(file).toLowerCase() === '.flac')
+	.sort((a, b) => a.localeCompare(b))
+	.map((file) => {
+		const name = basename(file, extname(file));
+		const lrcFile = lrcFiles.get(name.toLowerCase());
+		return {
+			title: name,
+			src: mediaPath(file),
+			lrc: lrcFile ? mediaPath(lrcFile) : '',
+		};
+	});
+const fallbackTrack = {
+	title: 'Music',
+	src: musicConfig.src,
+	lrc: musicLrc,
+};
+const musicPlaylist = musicRandom && scannedPlaylist.length ? scannedPlaylist : [fallbackTrack];
+const initialTrack = musicPlaylist[0] ?? fallbackTrack;
+const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 ---
 
 <header class="site-header">
@@ -12,7 +52,7 @@ import HeaderLink from './HeaderLink.astro';
 				<span class="brand-text">{SITE_TITLE}</span>
 			</a>
 			<nav class="nav-links" aria-label="Primary">
-				<HeaderLink href="/blog">Blog</HeaderLink>
+				<HeaderLink href="/blog">Posts</HeaderLink>
 				<HeaderLink href="/docs">Docs</HeaderLink>
 				<HeaderLink href="/projects">Projects</HeaderLink>
 				<HeaderLink href="/links">Links</HeaderLink>
@@ -20,6 +60,27 @@ import HeaderLink from './HeaderLink.astro';
 			</nav>
 		</div>
 		<div class="actions">
+			<button
+				class="btn-icon"
+				id="music-toggle"
+				type="button"
+				aria-label={musicAutoplay ? 'Pause background music' : 'Play background music'}
+				aria-pressed={String(musicAutoplay)}
+				data-playing={String(musicAutoplay)}
+			>
+				<svg class="icon-music-on" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+					<path
+						fill="currentColor"
+						d="M12 4a1 1 0 011-1h6a1 1 0 011 1v3a1 1 0 01-.76.97L14 9.28V17a4 4 0 11-2-3.46V4zm2 3.22l4-1V5h-4v2.22zM10 17a2 2 0 10-2 2 2 2 0 002-2z"
+					/>
+				</svg>
+				<svg class="icon-music-off" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+					<path
+						fill="currentColor"
+						d="M4.71 3.29a1 1 0 00-1.42 1.42l8.55 8.55A4 4 0 1013 16.07v-.81l6.29 6.29a1 1 0 001.42-1.42l-16-16zM8 19a2 2 0 111.84-2.78l1.5 1.5A2 2 0 018 19zm5-15a1 1 0 011-1h5a1 1 0 011 1v3a1 1 0 01-.76.97L14 9.28v1.21l-2-2V4a1 1 0 011-1z"
+					/>
+				</svg>
+			</button>
 			<a class="btn-icon" href="/search" aria-label="Search">
 				<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
 					<path
@@ -44,9 +105,49 @@ import HeaderLink from './HeaderLink.astro';
 			</button>
 		</div>
 	</div>
+	<audio
+		id="background-music"
+		src={initialTrack.src}
+		preload={musicPreload}
+		loop={audioLoop}
+		autoplay={musicAutoplay}
+		transition:persist
+	></audio>
 </header>
 
-<script is:inline>
+<aside class="music-player" aria-label="Background music player" lang={musicLang}>
+	<div class="music-player-inner">
+		<button
+			class="music-player-button"
+			id="music-player-toggle"
+			type="button"
+			aria-label={musicAutoplay ? 'Pause background music' : 'Play background music'}
+			aria-pressed={String(musicAutoplay)}
+			data-playing={String(musicAutoplay)}
+		>
+			<svg class="icon-music-on" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+				<path fill="currentColor" d="M8 5.8a1 1 0 011.55-.83l8 5.2a1 1 0 010 1.66l-8 5.2A1 1 0 018 16.2V5.8z" />
+			</svg>
+			<svg class="icon-music-off" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+				<path fill="currentColor" d="M7 5a1 1 0 011-1h1a1 1 0 011 1v14a1 1 0 01-1 1H8a1 1 0 01-1-1V5zm7 0a1 1 0 011-1h1a1 1 0 011 1v14a1 1 0 01-1 1h-1a1 1 0 01-1-1V5z" />
+			</svg>
+		</button>
+		<div class="music-player-main">
+			<div class="music-player-meta">
+				<div class="music-player-title" id="music-title">Music</div>
+				<div class="music-player-artist" id="music-artist">Artist</div>
+			</div>
+			<p class="music-player-lyric" id="music-lyric">Loading lyrics...</p>
+			<div class="music-player-progress">
+				<span id="music-current-time">0:00</span>
+				<input id="music-progress" type="range" min="0" max="1000" value="0" step="1" aria-label="Music progress" />
+				<span id="music-duration">0:00</span>
+			</div>
+		</div>
+	</div>
+</aside>
+
+<script is:inline data-astro-rerun define:vars={{ musicAutoplay, musicLrcEncoding, musicLang, musicPlaylist, musicRandom }}>
 	(() => {
 		const button = document.getElementById('theme-toggle');
 		if (!button) return;
@@ -56,6 +157,241 @@ import HeaderLink from './HeaderLink.astro';
 			document.documentElement.dataset.theme = next;
 			localStorage.setItem('theme', next);
 		});
+	})();
+
+	(() => {
+		if (window.__musicPlayerCleanup) window.__musicPlayerCleanup();
+
+		const cleanups = [];
+		const on = (target, event, handler, options) => {
+			target.addEventListener(event, handler, options);
+			cleanups.push(() => target.removeEventListener(event, handler, options));
+		};
+
+		const buttons = [document.getElementById('music-toggle'), document.getElementById('music-player-toggle')].filter(
+			(button) => button instanceof HTMLButtonElement,
+		);
+		const audio = document.getElementById('background-music');
+		const title = document.getElementById('music-title');
+		const artist = document.getElementById('music-artist');
+		const lyric = document.getElementById('music-lyric');
+		const progress = document.getElementById('music-progress');
+		const currentTime = document.getElementById('music-current-time');
+		const duration = document.getElementById('music-duration');
+		if (!(audio instanceof HTMLAudioElement)) return;
+		if (lyric) lyric.setAttribute('lang', musicLang);
+		if (title) title.setAttribute('lang', musicLang);
+		if (artist) artist.setAttribute('lang', musicLang);
+
+		let manuallyPaused = !musicAutoplay;
+		let seeking = false;
+		let lyrics = [];
+		let lyricRequestId = 0;
+		let activeTrack = null;
+		const playlist = Array.isArray(musicPlaylist) ? musicPlaylist.filter((track) => track?.src) : [];
+		window.__musicPlayerCleanup = () => {
+			for (const cleanup of cleanups) cleanup();
+		};
+
+		const getTrackName = (track) => {
+			if (track?.title) return track.title;
+			const fileName = decodeURIComponent((track?.src ?? '').split('/').pop() ?? '');
+			return fileName.replace(/\.[^.]+$/, '') || 'Music';
+		};
+
+		const normalizePath = (src) => {
+			try {
+				return new URL(src, window.location.href).pathname;
+			} catch {
+				return src;
+			}
+		};
+
+		const getCurrentTrack = () => {
+			const currentPath = normalizePath(audio.currentSrc || audio.getAttribute('src') || '');
+			return playlist.find((track) => normalizePath(track.src) === currentPath) ?? null;
+		};
+
+		const pickRandomTrack = () => {
+			if (playlist.length <= 1) return playlist[0] ?? null;
+			const candidates = playlist.filter((track) => track.src !== activeTrack?.src);
+			return candidates[Math.floor(Math.random() * candidates.length)] ?? playlist[0];
+		};
+
+		const setTrack = (track) => {
+			if (!track) return;
+			activeTrack = track;
+			lyrics = [];
+			lyricRequestId += 1;
+			if (title) title.textContent = getTrackName(track);
+			if (artist) artist.textContent = 'Artist';
+			if (lyric) lyric.textContent = track.lrc ? 'Loading lyrics...' : 'No synced lyrics';
+			if (progress instanceof HTMLInputElement) progress.value = '0';
+			if (currentTime) currentTime.textContent = '0:00';
+			if (duration) duration.textContent = '0:00';
+			if (audio.getAttribute('src') !== track.src) {
+				audio.src = track.src;
+				audio.load();
+			}
+			loadLyrics(track);
+		};
+
+		const syncButton = () => {
+			const isPlaying = !audio.paused && !audio.ended;
+			for (const button of buttons) {
+				button.dataset.playing = String(isPlaying);
+				button.setAttribute('aria-pressed', String(isPlaying));
+				button.setAttribute('aria-label', isPlaying ? 'Pause background music' : 'Play background music');
+			}
+		};
+
+		const playAudio = async () => {
+			try {
+				await audio.play();
+			} catch {
+				// Browsers can block audible autoplay until the first user gesture.
+			}
+			syncButton();
+		};
+
+		const toggleAudio = () => {
+			if (audio.paused) {
+				manuallyPaused = false;
+				playAudio();
+				return;
+			}
+			manuallyPaused = true;
+			audio.pause();
+			syncButton();
+		};
+
+		const formatTime = (seconds) => {
+			if (!Number.isFinite(seconds)) return '0:00';
+			const minutes = Math.floor(seconds / 60);
+			const rest = Math.floor(seconds % 60).toString().padStart(2, '0');
+			return `${minutes}:${rest}`;
+		};
+
+		const parseLrc = (text) => {
+			const meta = {};
+			const parsedLyrics = [];
+			for (const line of text.split(/\r?\n/)) {
+				const metaMatch = line.match(/^\[(ti|ar|al|by|offset):([^\]]*)\]$/i);
+				if (metaMatch) {
+					meta[metaMatch[1].toLowerCase()] = metaMatch[2].trim();
+					continue;
+				}
+
+				const lyricText = line.replace(/(?:\[\d{2}:\d{2}(?:\.\d{1,3})?\])+/g, '').trim();
+				const timeMatches = [...line.matchAll(/\[(\d{2}):(\d{2})(?:\.(\d{1,3}))?\]/g)];
+				for (const match of timeMatches) {
+					const fraction = (match[3] ?? '0').padEnd(3, '0').slice(0, 3);
+					parsedLyrics.push({
+						time: Number(match[1]) * 60 + Number(match[2]) + Number(fraction) / 1000,
+						text: lyricText,
+					});
+				}
+			}
+			parsedLyrics.sort((a, b) => a.time - b.time);
+			return { meta, lyrics: parsedLyrics.filter((item) => item.text) };
+		};
+
+		const decodeLrc = (buffer) => {
+			const encodings = [musicLrcEncoding, 'utf-8', 'gb18030', 'shift_jis'].filter(
+				(encoding, index, list) => encoding && list.indexOf(encoding) === index,
+			);
+			for (const encoding of encodings) {
+				try {
+					return new TextDecoder(encoding, { fatal: true }).decode(buffer);
+				} catch {
+					// Try the next likely lyrics encoding.
+				}
+			}
+			return new TextDecoder().decode(buffer);
+		};
+
+		const updateLyric = () => {
+			if (!lyric || lyrics.length === 0) return;
+			let active = lyrics[0];
+			for (const item of lyrics) {
+				if (item.time > audio.currentTime) break;
+				active = item;
+			}
+			lyric.textContent = active?.text ?? '';
+		};
+
+		const updateProgress = () => {
+			if (currentTime) currentTime.textContent = formatTime(audio.currentTime);
+			if (duration) duration.textContent = formatTime(audio.duration);
+			if (!seeking && progress instanceof HTMLInputElement) {
+				const value = audio.duration ? (audio.currentTime / audio.duration) * 1000 : 0;
+				progress.value = String(Math.max(0, Math.min(1000, value)));
+			}
+			updateLyric();
+		};
+
+		const loadLyrics = async (track) => {
+			const requestId = lyricRequestId;
+			if (!track?.lrc || !lyric) return;
+			try {
+				const response = await fetch(track.lrc);
+				if (!response.ok) throw new Error(`Failed to load ${track.lrc}`);
+				const parsed = parseLrc(decodeLrc(await response.arrayBuffer()));
+				if (requestId !== lyricRequestId) return;
+				lyrics = parsed.lyrics;
+				if (title && parsed.meta.ti) title.textContent = parsed.meta.ti;
+				if (artist && parsed.meta.ar) artist.textContent = parsed.meta.ar;
+				lyric.textContent = lyrics[0]?.text ?? 'No synced lyrics';
+			} catch {
+				if (requestId !== lyricRequestId) return;
+				lyric.textContent = 'Lyrics unavailable';
+			}
+		};
+
+		for (const button of buttons) {
+			on(button, 'click', toggleAudio);
+		}
+
+		if (progress instanceof HTMLInputElement) {
+			on(progress, 'input', () => {
+				seeking = true;
+				if (currentTime) {
+					const nextTime = audio.duration ? (Number(progress.value) / 1000) * audio.duration : 0;
+					currentTime.textContent = formatTime(nextTime);
+				}
+			});
+			on(progress, 'change', () => {
+				if (audio.duration) audio.currentTime = (Number(progress.value) / 1000) * audio.duration;
+				seeking = false;
+				updateProgress();
+			});
+		}
+
+		on(audio, 'play', syncButton);
+		on(audio, 'pause', syncButton);
+		on(audio, 'loadedmetadata', updateProgress);
+		on(audio, 'timeupdate', updateProgress);
+		on(audio, 'ended', () => {
+			if (!musicRandom || playlist.length <= 1) return;
+			setTrack(pickRandomTrack());
+			if (!manuallyPaused) playAudio();
+		});
+
+		const retryAutoplay = () => {
+			if (!manuallyPaused && audio.paused) playAudio();
+			document.removeEventListener('pointerdown', retryAutoplay);
+			document.removeEventListener('keydown', retryAutoplay);
+		};
+
+		on(document, 'pointerdown', retryAutoplay, { once: true });
+		on(document, 'keydown', retryAutoplay, { once: true });
+
+		const persistedTrack = getCurrentTrack();
+		const hasPersistedAudio = Boolean(persistedTrack && (audio.currentTime > 0 || !audio.paused || audio.readyState > 0));
+		setTrack(hasPersistedAudio ? persistedTrack : musicRandom ? pickRandomTrack() : playlist[0]);
+		updateProgress();
+		if (musicAutoplay) playAudio();
+		else syncButton();
 	})();
 </script>
 <style>
@@ -165,6 +501,127 @@ import HeaderLink from './HeaderLink.astro';
 	#theme-toggle {
 		position: relative;
 	}
+	#music-toggle {
+		position: relative;
+	}
+	.icon-music-off {
+		display: none;
+	}
+	#music-toggle[data-playing='false'] .icon-music-on {
+		display: none;
+	}
+	#music-toggle[data-playing='false'] .icon-music-off {
+		display: block;
+	}
+	.music-player {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 30;
+		padding: 0.75rem var(--page-gutter);
+		background: linear-gradient(to top, rgba(var(--bg), 0.96), rgba(var(--bg), 0.78));
+		backdrop-filter: saturate(180%) blur(16px);
+		border-top: 1px solid rgb(var(--border));
+		font-family: var(--font-atkinson), "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+	}
+	.music-player-inner {
+		display: grid;
+		grid-template-columns: 44px minmax(0, 1fr);
+		gap: 0.75rem;
+		align-items: center;
+		width: min(var(--container), 100%);
+		margin: 0 auto;
+	}
+	.music-player-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 44px;
+		height: 44px;
+		border: 1px solid rgb(var(--border));
+		border-radius: 12px;
+		background: rgba(var(--accent-rgb), 0.14);
+		color: rgb(var(--black));
+		cursor: pointer;
+		transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+	}
+	.music-player-button:hover {
+		background: rgba(var(--accent-rgb), 0.2);
+		border-color: rgba(var(--border), 0.8);
+		box-shadow: var(--shadow);
+	}
+	.music-player-button[data-playing='false'] .icon-music-on {
+		display: block;
+	}
+	.music-player-button[data-playing='false'] .icon-music-off {
+		display: none;
+	}
+	.music-player-button[data-playing='true'] .icon-music-on {
+		display: none;
+	}
+	.music-player-button[data-playing='true'] .icon-music-off {
+		display: block;
+	}
+	.music-player-main {
+		display: grid;
+		gap: 0.28rem;
+		min-width: 0;
+	}
+	.music-player-meta {
+		display: flex;
+		gap: 0.6rem;
+		align-items: baseline;
+		min-width: 0;
+	}
+	.music-player-title {
+		color: rgb(var(--black));
+		font-size: 0.95rem;
+		font-weight: 700;
+		line-height: 1.2;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.music-player-artist {
+		color: rgb(var(--gray));
+		font-size: 0.82rem;
+		line-height: 1.2;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.music-player-lyric {
+		margin: 0;
+		color: rgb(var(--gray-dark));
+		font-size: 0.9rem;
+		line-height: 1.3;
+		overflow: hidden;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-break: strict;
+		overflow-wrap: anywhere;
+		word-break: keep-all;
+	}
+	.music-player-progress {
+		display: grid;
+		grid-template-columns: 42px minmax(0, 1fr) 42px;
+		gap: 0.55rem;
+		align-items: center;
+		color: rgb(var(--gray));
+		font-size: 0.78rem;
+		font-variant-numeric: tabular-nums;
+		line-height: 1;
+	}
+	.music-player-progress input {
+		width: 100%;
+		margin: 0;
+		accent-color: rgb(var(--accent-rgb));
+	}
+	:global(body) {
+		padding-bottom: 112px;
+	}
 	.icon-sun {
 		display: none;
 	}
@@ -181,5 +638,29 @@ import HeaderLink from './HeaderLink.astro';
 		.brand-text {
 			display: none;
 		}
+		.music-player {
+			padding: 0.65rem var(--page-gutter);
+		}
+		.music-player-inner {
+			grid-template-columns: 40px minmax(0, 1fr);
+			gap: 0.6rem;
+		}
+		.music-player-button {
+			width: 40px;
+			height: 40px;
+		}
+		.music-player-meta {
+			gap: 0.45rem;
+		}
+		.music-player-title {
+			font-size: 0.88rem;
+		}
+		.music-player-artist {
+			font-size: 0.76rem;
+		}
+		.music-player-lyric {
+			font-size: 0.82rem;
+		}
 	}
 </style>
+

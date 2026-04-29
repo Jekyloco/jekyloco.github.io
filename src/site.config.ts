@@ -3,6 +3,7 @@ import LogoImage from './images/logo.jpg';
 
 export const SITE_CONFIG = {
 	theme: {
+		default: 'dark',
 		light: {
 			accentRgb: '99, 102, 241',
 			link: '#4f46e5',
@@ -19,6 +20,16 @@ export const SITE_CONFIG = {
 			cardRgb: '15, 23, 42',
 			borderRgb: '51, 65, 85',
 		},
+	},
+	music: {
+		src: '/media/01%20%E5%89%B5%E9%80%A0.flac',
+		lrc: '/media/01%20%E5%89%B5%E9%80%A0.lrc',
+		lrcEncoding: 'gb18030',
+		lang: 'ja',
+		random: true,
+		autoplay: false,
+		loop: true,
+		preload: 'auto',
 	},
 	backgroundImage: BackgroundImage.src,
 	markdown: {

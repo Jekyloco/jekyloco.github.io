@@ -6,6 +6,7 @@ import type { ImageMetadata } from 'astro';
 import FallbackImage from '../assets/blog-placeholder-1.jpg';
 import { SITE_TITLE } from '../consts';
 import { Font } from 'astro:assets';
+import { ClientRouter } from 'astro:transitions';
 import { SITE_CONFIG } from '../site.config';
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
 const { title, description, image = FallbackImage } = Astro.props;
+const defaultTheme = SITE_CONFIG.theme.default === 'dark' ? 'dark' : 'light';
 
 const cssVarName = (key: string) => {
 	if (key === 'accentRgb') return '--accent-rgb';
@@ -76,11 +78,33 @@ const iconLinks = configuredIcons.length
 <!-- Global Metadata -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<script is:inline>
+<ClientRouter />
+<script is:inline define:vars={{ defaultTheme }}>
 	(() => {
-		const stored = localStorage.getItem('theme');
-		const theme = stored ?? 'light';
-		document.documentElement.dataset.theme = theme;
+		const getTheme = () => {
+			const storedDefault = localStorage.getItem('theme-default');
+			const stored = localStorage.getItem('theme');
+			return storedDefault === defaultTheme && stored ? stored : defaultTheme;
+		};
+
+		const applyTheme = () => {
+			const theme = getTheme();
+			document.documentElement.dataset.theme = theme;
+			localStorage.setItem('theme-default', defaultTheme);
+			localStorage.setItem('theme', theme);
+			return theme;
+		};
+
+		applyTheme();
+
+		if (window.__themeSwapBound) return;
+		window.__themeSwapBound = true;
+
+		document.addEventListener('astro:before-swap', (event) => {
+			const theme = localStorage.getItem('theme') ?? getTheme();
+			event.newDocument.documentElement.dataset.theme = theme;
+		});
+		document.addEventListener('astro:after-swap', applyTheme);
 	})();
 </script>
 {injectedCss && <style set:html={injectedCss} />}
