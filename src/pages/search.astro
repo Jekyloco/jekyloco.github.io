@@ -9,6 +9,8 @@ import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
 const posts = (await getCollection('blog')).sort(
 	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
 );
+
+const normalizeSearchText = (text?: string) => (text ?? '').replace(/\s+/g, ' ').trim();
 ---
 
 <!doctype html>
@@ -45,6 +47,7 @@ const posts = (await getCollection('blog')).sort(
 						data-title={post.data.title}
 						data-description={post.data.description}
 						data-tags={(post.data.tags ?? []).join(',')}
+						data-body={normalizeSearchText(post.body)}
 					>
 						<div class="post-card-main">
 							<div class="post-card-meta">
@@ -80,7 +83,8 @@ const posts = (await getCollection('blog')).sort(
 						const title = (el.getAttribute('data-title') ?? '').toLowerCase();
 						const desc = (el.getAttribute('data-description') ?? '').toLowerCase();
 						const tags = (el.getAttribute('data-tags') ?? '').toLowerCase();
-						const ok = !q || title.includes(q) || desc.includes(q) || tags.includes(q);
+						const body = (el.getAttribute('data-body') ?? '').toLowerCase();
+						const ok = !q || title.includes(q) || desc.includes(q) || tags.includes(q) || body.includes(q);
 						el.hidden = !ok;
 						if (ok) shown += 1;
 					}
