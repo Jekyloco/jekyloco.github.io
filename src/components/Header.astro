@@ -132,20 +132,39 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 				<path fill="currentColor" d="M7 5a1 1 0 011-1h1a1 1 0 011 1v14a1 1 0 01-1 1H8a1 1 0 01-1-1V5zm7 0a1 1 0 011-1h1a1 1 0 011 1v14a1 1 0 01-1 1h-1a1 1 0 01-1-1V5z" />
 			</svg>
 		</button>
-		<div class="music-player-main">
-			<div class="music-player-meta">
-				<div class="music-player-title" id="music-title">Music</div>
-				<div class="music-player-artist" id="music-artist">Artist</div>
+		<div class="music-player-main-wrap">
+			<div class="music-player-main">
+				<div class="music-player-meta">
+					<div class="music-player-title" id="music-title">Music</div>
+					<div class="music-player-artist" id="music-artist">Artist</div>
+				</div>
+				<p class="music-player-lyric" id="music-lyric">Loading lyrics...</p>
+				<div class="music-player-progress">
+					<span id="music-current-time">0:00</span>
+					<input id="music-progress" type="range" min="0" max="1000" value="0" step="1" aria-label="Music progress" />
+					<span id="music-duration">0:00</span>
+				</div>
 			</div>
-			<p class="music-player-lyric" id="music-lyric">Loading lyrics...</p>
-			<div class="music-player-progress">
-				<span id="music-current-time">0:00</span>
-				<input id="music-progress" type="range" min="0" max="1000" value="0" step="1" aria-label="Music progress" />
-				<span id="music-duration">0:00</span>
-			</div>
+			<button
+				class="music-player-hide"
+				id="music-player-hide"
+				type="button"
+				aria-label="Hide music player"
+				title="Hide player"
+			>
+				<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+					<path
+						fill="currentColor"
+						d="M12 16a1 1 0 01-.7-.29l-6-6a1 1 0 111.4-1.42L12 13.59l5.3-5.3a1 1 0 111.4 1.42l-6 6A1 1 0 0112 16z"
+					/>
+				</svg>
+			</button>
 		</div>
 	</div>
 </aside>
+<button class="music-player-show" id="music-player-show" type="button" aria-label="Show music player" hidden>
+	Open player
+</button>
 
 <script is:inline data-astro-rerun define:vars={{ musicAutoplay, musicLrcEncoding, musicLang, musicPlaylist, musicRandom }}>
 	(() => {
@@ -178,7 +197,11 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 		const progress = document.getElementById('music-progress');
 		const currentTime = document.getElementById('music-current-time');
 		const duration = document.getElementById('music-duration');
+		const player = document.querySelector('.music-player');
+		const hidePlayerButton = document.getElementById('music-player-hide');
+		const showPlayerButton = document.getElementById('music-player-show');
 		if (!(audio instanceof HTMLAudioElement)) return;
+		if (!(player instanceof HTMLElement)) return;
 		if (lyric) lyric.setAttribute('lang', musicLang);
 		if (title) title.setAttribute('lang', musicLang);
 		if (artist) artist.setAttribute('lang', musicLang);
@@ -188,9 +211,23 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 		let lyrics = [];
 		let lyricRequestId = 0;
 		let activeTrack = null;
+		const hiddenKey = 'music-player-hidden';
+		let isPlayerHidden = localStorage.getItem(hiddenKey) === '1';
 		const playlist = Array.isArray(musicPlaylist) ? musicPlaylist.filter((track) => track?.src) : [];
 		window.__musicPlayerCleanup = () => {
 			for (const cleanup of cleanups) cleanup();
+		};
+
+		const syncPlayerVisibility = () => {
+			player.dataset.hidden = String(isPlayerHidden);
+			document.body.classList.toggle('music-player-collapsed', isPlayerHidden);
+			if (showPlayerButton instanceof HTMLButtonElement) showPlayerButton.hidden = !isPlayerHidden;
+		};
+
+		const setPlayerHidden = (nextHidden) => {
+			isPlayerHidden = Boolean(nextHidden);
+			localStorage.setItem(hiddenKey, isPlayerHidden ? '1' : '0');
+			syncPlayerVisibility();
 		};
 
 		const getTrackName = (track) => {
@@ -351,6 +388,12 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 		for (const button of buttons) {
 			on(button, 'click', toggleAudio);
 		}
+		if (hidePlayerButton instanceof HTMLButtonElement) {
+			on(hidePlayerButton, 'click', () => setPlayerHidden(true));
+		}
+		if (showPlayerButton instanceof HTMLButtonElement) {
+			on(showPlayerButton, 'click', () => setPlayerHidden(false));
+		}
 
 		if (progress instanceof HTMLInputElement) {
 			on(progress, 'input', () => {
@@ -392,6 +435,7 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 		updateProgress();
 		if (musicAutoplay) playAudio();
 		else syncButton();
+		syncPlayerVisibility();
 	})();
 </script>
 <style>
@@ -563,6 +607,59 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 	.music-player-button[data-playing='true'] .icon-music-off {
 		display: block;
 	}
+	.music-player-main-wrap {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 36px;
+		align-items: center;
+		gap: 0.6rem;
+		min-width: 0;
+	}
+	.music-player-hide {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 36px;
+		border: 1px solid rgb(var(--border));
+		border-radius: 10px;
+		background: rgba(var(--card), var(--card-alpha));
+		color: rgb(var(--gray));
+		cursor: pointer;
+		transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+	}
+	.music-player-hide:hover {
+		background: rgba(var(--gray-light), 0.25);
+		border-color: rgba(var(--border), 0.8);
+		box-shadow: var(--shadow);
+	}
+	.music-player-show {
+		position: fixed;
+		right: var(--page-gutter);
+		bottom: 0.9rem;
+		z-index: 31;
+		border: 1px solid rgb(var(--border));
+		border-radius: 999px;
+		padding: 0.42rem 0.9rem;
+		background: rgba(var(--card), var(--card-alpha));
+		color: rgb(var(--black));
+		font-size: 0.86rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+	}
+	.music-player-show:hover {
+		background: rgba(var(--accent-rgb), 0.12);
+		border-color: rgba(var(--border), 0.8);
+		box-shadow: var(--shadow);
+	}
+	.music-player[data-hidden='true'] {
+		transform: translateY(calc(100% + 1.2rem));
+		opacity: 0;
+		pointer-events: none;
+	}
+	.music-player {
+		transition: transform 180ms ease, opacity 180ms ease;
+	}
 	.music-player-main {
 		display: grid;
 		gap: 0.28rem;
@@ -622,6 +719,9 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 	:global(body) {
 		padding-bottom: 112px;
 	}
+	:global(body.music-player-collapsed) {
+		padding-bottom: 2.8rem;
+	}
 	.icon-sun {
 		display: none;
 	}
@@ -648,6 +748,13 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 		.music-player-button {
 			width: 40px;
 			height: 40px;
+		}
+		.music-player-hide {
+			width: 34px;
+			height: 34px;
+		}
+		.music-player-main-wrap {
+			grid-template-columns: minmax(0, 1fr) 34px;
 		}
 		.music-player-meta {
 			gap: 0.45rem;

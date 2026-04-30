@@ -18,8 +18,70 @@ type Props = CollectionEntry<'blog'>;
 
 const post = Astro.props;
 const { Content } = await render(post);
+const allPosts = await getCollection('blog');
+
+type RelatedPost = {
+	id: string;
+	data: CollectionEntry<'blog'>['data'];
+};
+
+const normalizeTags = (value: string[]) => [...new Set(value.map((tag) => tag.trim()).filter(Boolean))];
+const currentTags = normalizeTags(post.data.tags ?? []);
+
+const dayDistance = (a: Date, b: Date) => Math.abs(a.valueOf() - b.valueOf()) / (1000 * 60 * 60 * 24);
+
+const candidates = allPosts
+	.filter((candidate) => candidate.id !== post.id)
+	.map((candidate) => {
+		const candidateTags = normalizeTags(candidate.data.tags ?? []);
+		const sharedTags = candidateTags.filter((tag) => currentTags.includes(tag));
+		return {
+			post: candidate,
+			sharedTags,
+			sharedCount: sharedTags.length,
+			dateDistance: dayDistance(candidate.data.pubDate, post.data.pubDate),
+		};
+	})
+	.filter((candidate) => candidate.sharedCount > 0)
+	.sort((a, b) => b.sharedCount - a.sharedCount || a.dateDistance - b.dateDistance);
+
+const pickBalancedRelatedPosts = (limit: number): RelatedPost[] => {
+	const selected: RelatedPost[] = [];
+	const tagUsage = new Map<string, number>();
+	const pool = [...candidates];
+
+	while (selected.length < limit && pool.length > 0) {
+		let bestIndex = 0;
+		let bestRank = Number.NEGATIVE_INFINITY;
+
+		for (let index = 0; index < pool.length; index += 1) {
+			const item = pool[index];
+			const usagePenalty = item.sharedTags.reduce((sum, tag) => sum + (tagUsage.get(tag) ?? 0), 0);
+			const minUsage = item.sharedTags.reduce(
+				(min, tag) => Math.min(min, tagUsage.get(tag) ?? 0),
+				Number.POSITIVE_INFINITY,
+			);
+			const balanceBonus = minUsage === Number.POSITIVE_INFINITY ? 0 : 5 - minUsage;
+			const rank = item.sharedCount * 100 - usagePenalty * 10 + balanceBonus - item.dateDistance * 0.01;
+			if (rank > bestRank) {
+				bestRank = rank;
+				bestIndex = index;
+			}
+		}
+
+		const [picked] = pool.splice(bestIndex, 1);
+		selected.push({ id: picked.post.id, data: picked.post.data });
+		for (const tag of picked.sharedTags) {
+			tagUsage.set(tag, (tagUsage.get(tag) ?? 0) + 1);
+		}
+	}
+
+	return selected;
+};
+
+const relatedPosts = pickBalancedRelatedPosts(3);
 ---
 
-<BlogPost {...post.data} minutes={estimateReadingMinutes(post.body)}>
+<BlogPost {...post.data} minutes={estimateReadingMinutes(post.body)} relatedPosts={relatedPosts}>
 	<Content />
 </BlogPost>
