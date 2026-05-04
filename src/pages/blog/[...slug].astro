@@ -1,11 +1,8 @@
 ---
 import { type CollectionEntry, getCollection, render } from 'astro:content';
 import BlogPost from '../../layouts/BlogPost.astro';
-
-function estimateReadingMinutes(text?: string) {
-	const words = (text ?? '').trim().split(/\s+/).filter(Boolean).length;
-	return Math.max(1, Math.round(words / 200));
-}
+import { countPostBodyCharacters } from '../../utils/postBodyStats';
+import { resolvePostDescription } from '../../utils/postDescription';
 
 export async function getStaticPaths() {
 	const posts = await getCollection('blog');
@@ -23,6 +20,7 @@ const allPosts = await getCollection('blog');
 type RelatedPost = {
 	id: string;
 	data: CollectionEntry<'blog'>['data'];
+	listingDescription: string;
 };
 
 const normalizeTags = (value: string[]) => [...new Set(value.map((tag) => tag.trim()).filter(Boolean))];
@@ -70,7 +68,15 @@ const pickBalancedRelatedPosts = (limit: number): RelatedPost[] => {
 		}
 
 		const [picked] = pool.splice(bestIndex, 1);
-		selected.push({ id: picked.post.id, data: picked.post.data });
+		selected.push({
+			id: picked.post.id,
+			data: picked.post.data,
+			listingDescription: resolvePostDescription(
+				picked.post.data.description,
+				picked.post.body,
+				picked.post.data.title,
+			),
+		});
 		for (const tag of picked.sharedTags) {
 			tagUsage.set(tag, (tagUsage.get(tag) ?? 0) + 1);
 		}
@@ -80,8 +86,14 @@ const pickBalancedRelatedPosts = (limit: number): RelatedPost[] => {
 };
 
 const relatedPosts = pickBalancedRelatedPosts(3);
+const resolvedDescription = resolvePostDescription(post.data.description, post.body, post.data.title);
 ---
 
-<BlogPost {...post.data} minutes={estimateReadingMinutes(post.body)} relatedPosts={relatedPosts}>
+<BlogPost
+	{...post.data}
+	description={resolvedDescription}
+	bodyCharCount={countPostBodyCharacters(post.body)}
+	relatedPosts={relatedPosts}
+>
 	<Content />
 </BlogPost>

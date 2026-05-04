@@ -38,6 +38,10 @@ export const SITE_CONFIG = {
 		lineHeight: '1.95',
 		backgroundRgb: '',
 	},
+	/** Auto-generated `description` excerpt when frontmatter omits it (plain text after stripping Markdown). */
+	content: {
+		autoDescriptionMaxChars: 88,
+	},
 	favicon: {
 		svg: '',
 		ico: LogoImage.src,

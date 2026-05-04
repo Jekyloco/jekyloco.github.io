@@ -5,6 +5,8 @@ import Header from '../components/Header.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
 import { getCollection } from 'astro:content';
 import FormattedDate from '../components/FormattedDate.astro';
+import { countPostBodyCharacters, formatPostBodyCharCount } from '../utils/postBodyStats';
+import { resolvePostDescription } from '../utils/postDescription';
 import FallbackImage from '../assets/blog-placeholder-1.jpg';
 import HomeHeroImage from '../images/image_250109_13.jpg';
 
@@ -59,10 +61,13 @@ const posts = (await getCollection('blog'))
 							<div class="post-card-main">
 								<div class="post-card-meta">
 									<span><FormattedDate date={post.data.pubDate} /></span>
+									<span>{formatPostBodyCharCount(countPostBodyCharacters(post.body))}</span>
 									<span>{post.data.lang}</span>
 								</div>
 								<h3 class="post-card-title">{post.data.title}</h3>
-								<p class="post-card-desc">{post.data.description}</p>
+								<p class="post-card-desc">
+									{resolvePostDescription(post.data.description, post.body, post.data.title)}
+								</p>
 							</div>
 							<div class="post-card-thumb" aria-hidden="true">
 								<img

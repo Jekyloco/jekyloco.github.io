@@ -154,6 +154,33 @@ p {
 	margin-bottom: 2em;
 }
 
+/* 与正文段落对齐字号/行高；斜体、粗体等语义仍交给标签默认（em 为斜体、strong 为粗体）。 */
+.prose :where(em, i, cite, dfn) {
+	font-family: inherit;
+	font-size: inherit;
+	line-height: inherit;
+	color: inherit;
+}
+
+.prose :where(strong, b) {
+	font-family: inherit;
+	font-size: inherit;
+	line-height: inherit;
+	color: inherit;
+}
+
+/* 全局 blockquote 偏大；正文内与 prose 同字号。 */
+.prose blockquote {
+	font-family: inherit;
+	font-size: 1em;
+	line-height: inherit;
+	margin: 0 0 1.25em;
+}
+
+.prose blockquote :where(p):last-child {
+	margin-bottom: 0;
+}
+
 textarea {
 	width: 100%;
 	font-size: 17px;

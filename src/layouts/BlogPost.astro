@@ -4,6 +4,7 @@ import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
+import { formatPostBodyCharCount } from '../utils/postBodyStats';
 
 type Props = {
 	title: string;
@@ -13,14 +14,16 @@ type Props = {
 	heroImage?: CollectionEntry<'blog'>['data']['heroImage'];
 	tags?: string[];
 	lang?: string;
-	minutes?: number;
+	bodyCharCount?: number;
 	relatedPosts?: Array<{
 		id: string;
 		data: CollectionEntry<'blog'>['data'];
+		listingDescription: string;
 	}>;
 };
 
-const { title, description, pubDate, updatedDate, heroImage, tags = [], lang, minutes, relatedPosts = [] } = Astro.props;
+const { title, description, pubDate, updatedDate, heroImage, tags = [], lang, bodyCharCount, relatedPosts = [] } =
+	Astro.props;
 ---
 
 <html lang="en">
@@ -192,7 +195,9 @@ const { title, description, pubDate, updatedDate, heroImage, tags = [], lang, mi
 					<div class="post-header-main">
 						<div class="post-meta">
 							<span><FormattedDate date={pubDate} /></span>
-							{typeof minutes === 'number' && <span>{minutes} min</span>}
+							{typeof bodyCharCount === 'number' && (
+								<span>{formatPostBodyCharCount(bodyCharCount)}</span>
+							)}
 							{lang && <span>{lang}</span>}
 							{updatedDate && (
 								<span>
@@ -233,7 +238,7 @@ const { title, description, pubDate, updatedDate, heroImage, tags = [], lang, mi
 										{item.data.lang && <span>{item.data.lang}</span>}
 									</div>
 									<h3 class="related-post-card-title">{item.data.title}</h3>
-									<p class="related-post-card-desc">{item.data.description}</p>
+									<p class="related-post-card-desc">{item.listingDescription}</p>
 									{(item.data.tags ?? []).length > 0 && (
 										<div class="related-post-tags">
 											{(item.data.tags ?? []).slice(0, 3).map((tag) => (
