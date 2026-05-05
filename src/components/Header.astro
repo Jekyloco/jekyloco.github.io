@@ -9,6 +9,7 @@ import HeaderLink from './HeaderLink.astro';
 const musicConfig = SITE_CONFIG.music;
 const musicRandom = musicConfig.random === true;
 const musicAutoplay = musicConfig.autoplay === true;
+const musicShowOnLoad = musicConfig.showOnLoad !== false;
 const musicLoop = musicConfig.loop !== false;
 const musicPreload = musicConfig.preload ?? 'auto';
 const musicLrc = musicConfig.lrc ?? '';
@@ -166,7 +167,7 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 	Open player
 </button>
 
-<script is:inline data-astro-rerun define:vars={{ musicAutoplay, musicLrcEncoding, musicLang, musicPlaylist, musicRandom }}>
+<script is:inline data-astro-rerun define:vars={{ musicAutoplay, musicLrcEncoding, musicLang, musicPlaylist, musicRandom, musicShowOnLoad }}>
 	(() => {
 		const button = document.getElementById('theme-toggle');
 		if (!button) return;
@@ -212,7 +213,8 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 		let lyricRequestId = 0;
 		let activeTrack = null;
 		const hiddenKey = 'music-player-hidden';
-		let isPlayerHidden = localStorage.getItem(hiddenKey) === '1';
+		const savedPlayerHidden = localStorage.getItem(hiddenKey);
+		let isPlayerHidden = savedPlayerHidden === null ? !musicShowOnLoad : savedPlayerHidden === '1';
 		const playlist = Array.isArray(musicPlaylist) ? musicPlaylist.filter((track) => track?.src) : [];
 		window.__musicPlayerCleanup = () => {
 			for (const cleanup of cleanups) cleanup();
@@ -220,7 +222,7 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 
 		const syncPlayerVisibility = () => {
 			player.dataset.hidden = String(isPlayerHidden);
-			document.body.classList.toggle('music-player-collapsed', isPlayerHidden);
+			<!-- document.body.classList.toggle('music-player-collapsed', isPlayerHidden); -->
 			if (showPlayerButton instanceof HTMLButtonElement) showPlayerButton.hidden = !isPlayerHidden;
 		};
 
@@ -715,9 +717,6 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 		width: 100%;
 		margin: 0;
 		accent-color: rgb(var(--accent-rgb));
-	}
-	:global(body) {
-		padding-bottom: 112px;
 	}
 	:global(body.music-player-collapsed) {
 		padding-bottom: 2.8rem;

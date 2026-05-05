@@ -28,6 +28,7 @@ export const SITE_CONFIG = {
 		lang: 'ja',
 		random: true,
 		autoplay: false,
+		showOnLoad: false,
 		loop: true,
 		preload: 'auto',
 	},

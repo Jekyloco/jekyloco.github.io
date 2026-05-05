@@ -1,8 +1,7 @@
-
 ---
 title: 'Zpass'
 description: 'Zpass'
-pubDate: 'Jun 01 2024'
+pubDate: '2024-06-04T18:30:00Z'
 heroImage: '../../images/image_260429_01.png'
 tags:
   - mdx
