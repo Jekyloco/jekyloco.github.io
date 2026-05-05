@@ -1,6 +1,6 @@
 ---
-title: 'Zpass'
-description: 'Zpass'
+title: 'Zpaas'
+description: 'Zpaas'
 pubDate: '2024-06-04T18:30:00Z'
 heroImage: '../../images/image_260429_01.png'
 tags:
@@ -9,9 +9,9 @@ tags:
   - example
 lang: English
 ---
-# Zpass相关
+# Zpaas相关
 
-> 启动业务进程前，先重新拉起zpass的进程，zk zmq redis
+> 启动业务进程前，先重新拉起zpaas的进程，zk zmq redis
 
 ## zookeeper集群
 
