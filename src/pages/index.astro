@@ -56,30 +56,56 @@ const posts = (await getCollection('blog'))
 			<section class="home-section container" aria-label="Latest">
 				<h2 class="home-section-title">Latest</h2>
 				<div class="post-list">
-					{posts.map((post) => (
-						<a class="card card-hover post-card" href={`/blog/${post.id}/`}>
-							<div class="post-card-main">
-								<div class="post-card-meta">
-									<span><FormattedDate date={post.data.pubDate} /></span>
-									<span>{formatPostBodyCharCount(countPostBodyCharacters(post.body))}</span>
-									<span>{post.data.lang}</span>
-								</div>
-								<h3 class="post-card-title">{post.data.title}</h3>
-								<p class="post-card-desc">
-									{resolvePostDescription(post.data.description, post.body, post.data.title)}
-								</p>
-							</div>
-							<div class="post-card-thumb" aria-hidden="true">
-								<img
-									src={post.data.heroImage?.src ?? FallbackImage.src}
-									width="440"
-									height="300"
-									alt=""
-									loading="lazy"
-								/>
-							</div>
-						</a>
-					))}
+					{
+						posts.map((post) => {
+							const tags = post.data.tags ?? [];
+							const visibleTags = tags.slice(0, 3);
+							const hiddenTagCount = Math.max(0, tags.length - visibleTags.length);
+
+							return (
+								<article class="card card-hover post-card home-post-card">
+									<div class="post-card-main">
+										<div class="post-card-meta">
+											<span><FormattedDate date={post.data.pubDate} /></span>
+											<span>{formatPostBodyCharCount(countPostBodyCharacters(post.body))}</span>
+											<span>{post.data.lang}</span>
+										</div>
+										<h3 class="post-card-title">
+											<a href={`/blog/${post.id}/`}>{post.data.title}</a>
+										</h3>
+										<p class="post-card-desc">
+											{resolvePostDescription(post.data.description, post.body, post.data.title)}
+										</p>
+										{visibleTags.length > 0 && (
+											<div class="post-card-tags" aria-label="Tags">
+												{visibleTags.map((tag) => (
+													<a class="post-card-tag" href={`/blog?tag=${encodeURIComponent(tag)}`}>
+														{tag}
+													</a>
+												))}
+												{hiddenTagCount > 0 && (
+													<span class="post-card-tag post-card-tag-more" aria-label={`${hiddenTagCount} more tags`}>
+														+{hiddenTagCount}
+													</span>
+												)}
+											</div>
+										)}
+									</div>
+									<div class="post-card-thumb" aria-hidden="true">
+										<a href={`/blog/${post.id}/`} tabindex="-1">
+											<img
+												src={post.data.heroImage?.src ?? FallbackImage.src}
+												width="440"
+												height="300"
+												alt=""
+												loading="lazy"
+											/>
+										</a>
+									</div>
+								</article>
+							);
+						})
+					}
 				</div>
 			</section>
 		</main>
