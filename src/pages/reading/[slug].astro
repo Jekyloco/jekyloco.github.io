@@ -189,16 +189,11 @@ if (shouldShowPlayer && lrcFile) {
 											}
 
 											for (let i = 0; i < lyricElements.length; i++) {
+												lyricElements[i].removeAttribute('style');
 												if (i === newIndex) {
 													lyricElements[i].classList.add('active');
-													lyricElements[i].style.color = '#93c5fd';
-													lyricElements[i].style.fontWeight = '800';
-													lyricElements[i].style.backgroundColor = 'rgba(147, 197, 253, 0.25)';
 												} else {
 													lyricElements[i].classList.remove('active');
-													lyricElements[i].style.color = 'rgba(255, 255, 255, 0.45)';
-													lyricElements[i].style.fontWeight = 'normal';
-													lyricElements[i].style.backgroundColor = 'transparent';
 												}
 											}
 
@@ -381,7 +376,7 @@ if (shouldShowPlayer && lrcFile) {
 		<Footer />
 
 		<style>
-			#lyrics-content .lyric-line {
+			:global(#lyrics-content .lyric-line) {
 				padding: 0.75rem 1.25rem;
 				margin: 0.35rem 0;
 				border-radius: 8px;
@@ -393,7 +388,7 @@ if (shouldShowPlayer && lrcFile) {
 				white-space: pre-wrap;
 			}
 
-			#lyrics-content .lyric-line.active {
+			:global(#lyrics-content .lyric-line.active) {
 				color: #93c5fd !important;
 				font-weight: 800 !important;
 				background: rgba(147, 197, 253, 0.25) !important;
