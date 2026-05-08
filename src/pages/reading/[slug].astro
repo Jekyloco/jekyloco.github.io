@@ -1,0 +1,752 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import { SITE_TITLE } from '../../consts';
+import { formatReadingDate, getReadingPlainText } from '../../data/readingEntries';
+import { existsSync, readFileSync, readdirSync } from 'fs';
+import { join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = join(__filename, '..');
+const publicDir = join(__dirname, '../../../public');
+const mediaDir = join(publicDir, 'media');
+
+export async function getStaticPaths() {
+	const entries = await getCollection('reading');
+	return entries.map((entry) => ({
+		params: { slug: entry.id },
+		props: { entry },
+	}));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const allEntries = await getCollection('reading');
+const relatedEntries = allEntries
+	.filter((item) => item.id !== entry.id && (item.data.tags ?? []).some((tag) => (entry.data.tags ?? []).includes(tag)))
+	.slice(0, 3);
+
+const isLyric = entry.data.kind === 'Lyric';
+
+let flacFile = undefined;
+let lrcFile = undefined;
+
+if (isLyric && entry.data.song_path && entry.data.lrc_path) {
+	const songPath = entry.data.song_path.replace(/^['"]|['"]$/g, '');
+	const lrcPathFromData = entry.data.lrc_path.replace(/^['"]|['"]$/g, '');
+	
+	const fullSongPath = join(mediaDir, songPath);
+	const fullLrcPath = join(mediaDir, lrcPathFromData);
+	
+	if (existsSync(fullSongPath)) {
+		flacFile = songPath;
+	}
+	if (existsSync(fullLrcPath)) {
+		lrcFile = lrcPathFromData;
+	}
+}
+
+const hasFlac = !!flacFile;
+const hasLrc = !!lrcFile;
+const shouldShowPlayer = isLyric && hasFlac && hasLrc;
+
+const audioSrc = hasFlac ? `/media/${flacFile}` : '';
+
+let lrcContent = '';
+if (shouldShowPlayer && lrcFile) {
+	const lrcPath = join(mediaDir, lrcFile);
+	lrcContent = readFileSync(lrcPath, 'utf-8');
+}
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={`${entry.data.title} · Reading · ${SITE_TITLE}`} description={getReadingPlainText(entry.body)} />
+	</head>
+	<body>
+		<Header />
+		<main class="reading-detail-main">
+			<div class="reading-header-badges">
+				<a class="badge reading-back" href="/reading">Back to Reading</a>
+				{shouldShowPlayer && (
+					<button id="toggle-view-btn" class="badge view-toggle-badge">View Markdown</button>
+				)}
+			</div>
+
+			<article class="reading-sheet">
+				<div id="player-view" style={shouldShowPlayer ? '' : 'display: none;'}>
+					<div id="audio-player-container">
+							<div class="player-controls">
+								<button id="play-btn" class="play-btn">▶</button>
+								
+								<div class="song-info">
+									<h2 class="song-title">{entry.data.title}</h2>
+									<p class="song-artist">{entry.data.author || entry.data.source}</p>
+								</div>
+							</div>
+							<div class="lyrics-container" id="lyrics-container">
+								<div id="lyrics-content"></div>
+							</div>
+
+							<div class="progress-container">
+								<span id="current-time">0:00</span>
+								<input type="range" id="progress-bar" min="0" max="100" value="0" />
+								<span id="duration">0:00</span>
+							</div>
+						</div>
+
+						<audio id="audio-player" preload="auto"></audio>
+						<textarea id="lrc-data" style="display:none;">{lrcContent}</textarea>
+						<input type="hidden" id="audio-src" value={audioSrc} />
+
+						<script is:inline>
+							(function() {
+								let audio = null;
+								let isPlayerInitialized = false;
+
+								function initPlayer() {
+									audio = document.getElementById('audio-player');
+									const playBtn = document.getElementById('play-btn');
+									const progressBar = document.getElementById('progress-bar');
+									const currentTimeEl = document.getElementById('current-time');
+									const durationEl = document.getElementById('duration');
+									const lyricsContent = document.getElementById('lyrics-content');
+									const lrcText = document.getElementById('lrc-data').value;
+									const audioSrc = document.getElementById('audio-src').value;
+
+									if (!audio || !playBtn) return;
+
+									console.log('Player initializing...');
+									console.log('Audio src:', audioSrc);
+									console.log('LRC text length:', lrcText.length);
+
+									audio.pause();
+									audio.currentTime = 0;
+									playBtn.textContent = '▶';
+
+									const cacheBuster = '?t=' + Date.now();
+									audio.src = audioSrc + cacheBuster;
+
+									function parseLrc(text) {
+										const lines = text.split('\n');
+										const lyrics = [];
+										const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/g;
+										
+										lines.forEach(line => {
+											const matches = [...line.matchAll(timeRegex)];
+											if (matches.length > 0) {
+												const lyricText = line.replace(timeRegex, '').trim();
+												matches.forEach(match => {
+													const minutes = parseInt(match[1]);
+													const seconds = parseInt(match[2]);
+													const ms = parseInt(match[3].padEnd(3, '0'));
+													const time = minutes * 60 + seconds + ms / 1000;
+													if (lyricText) {
+														lyrics.push({ time, text: lyricText });
+													}
+												});
+											}
+										});
+										
+										return lyrics.sort((a, b) => a.time - b.time);
+									}
+
+									const lyrics = parseLrc(lrcText);
+									console.log('Parsed lyrics:', lyrics.length, 'lines');
+
+									function formatTime(time) {
+										if (!isFinite(time) || time < 0) return '0:00';
+										const m = Math.floor(time / 60);
+										const s = Math.floor(time % 60).toString().padStart(2, '0');
+										return m + ':' + s;
+									}
+
+									let currentLyricIndex = -1;
+									let lyricElements = [];
+
+									function renderLyrics(currentTime) {
+										if (!lyricsContent) return;
+										
+										let newIndex = -1;
+										for (let i = 0; i < lyrics.length; i++) {
+											if (lyrics[i].time <= currentTime) {
+												newIndex = i;
+											}
+										}
+
+										if (newIndex !== currentLyricIndex) {
+											if (lyricElements.length === 0) {
+												let html = '';
+												for (let i = 0; i < lyrics.length; i++) {
+													html += '<div class="lyric-line" data-index="' + i + '">' + lyrics[i].text + '</div>';
+												}
+												lyricsContent.innerHTML = html;
+												lyricElements = lyricsContent.querySelectorAll('.lyric-line');
+											}
+
+											for (let i = 0; i < lyricElements.length; i++) {
+												if (i === newIndex) {
+													lyricElements[i].classList.add('active');
+													lyricElements[i].style.color = '#93c5fd';
+													lyricElements[i].style.fontWeight = '800';
+													lyricElements[i].style.backgroundColor = 'rgba(147, 197, 253, 0.25)';
+												} else {
+													lyricElements[i].classList.remove('active');
+													lyricElements[i].style.color = 'rgba(255, 255, 255, 0.45)';
+													lyricElements[i].style.fontWeight = 'normal';
+													lyricElements[i].style.backgroundColor = 'transparent';
+												}
+											}
+
+											if (newIndex >= 0 && lyricElements[newIndex]) {
+												const activeLine = lyricElements[newIndex];
+												const container = lyricsContent.parentElement;
+												const lineTop = activeLine.offsetTop;
+												const lineHeight = activeLine.offsetHeight;
+												const containerHeight = container.clientHeight;
+												
+												const scrollTo = lineTop - (containerHeight / 2) + (lineHeight / 2);
+												container.scrollTop = scrollTo;
+											}
+
+											currentLyricIndex = newIndex;
+										}
+									}
+
+									playBtn.onclick = function() {
+										console.log('Play clicked, paused:', audio.paused);
+										if (audio.paused) {
+											audio.play().then(() => {
+												playBtn.textContent = '⏸';
+												console.log('Playing started');
+											}).catch(err => {
+												console.error('Play error:', err);
+												alert('播放失败: ' + err.message);
+											});
+										} else {
+											audio.pause();
+											playBtn.textContent = '▶';
+										}
+									};
+
+									audio.onerror = function(e) {
+										console.error('Audio error:', e, audio.error);
+										playBtn.textContent = '▶';
+									};
+
+									audio.onloadedmetadata = function() {
+										console.log('Metadata loaded, duration:', audio.duration);
+										durationEl.textContent = formatTime(audio.duration);
+										progressBar.max = audio.duration;
+										renderLyrics(0);
+									};
+
+									audio.ontimeupdate = function() {
+										currentTimeEl.textContent = formatTime(audio.currentTime);
+										progressBar.value = audio.currentTime;
+										renderLyrics(audio.currentTime);
+									};
+
+									audio.onended = function() {
+										console.log('Audio ended');
+										playBtn.textContent = '▶';
+										audio.currentTime = 0;
+										renderLyrics(0);
+									};
+
+									progressBar.oninput = function() {
+										audio.currentTime = parseFloat(progressBar.value);
+									};
+
+									audio.volume = 0.8;
+									renderLyrics(0);
+									console.log('Initialization complete');
+									isPlayerInitialized = true;
+								}
+
+								function toggleView() {
+									const playerView = document.getElementById('player-view');
+									const markdownView = document.getElementById('markdown-view');
+									const toggleBtn = document.getElementById('toggle-view-btn');
+									
+									if (playerView.style.display === 'none') {
+										playerView.style.display = '';
+										markdownView.style.display = 'none';
+										toggleBtn.textContent = 'View Markdown';
+										
+										if (!isPlayerInitialized) {
+											initPlayer();
+										}
+									} else {
+										playerView.style.display = 'none';
+										markdownView.style.display = '';
+										toggleBtn.textContent = 'View Player';
+										
+										if (audio && !audio.paused) {
+											audio.pause();
+											const playBtn = document.getElementById('play-btn');
+											if (playBtn) playBtn.textContent = '▶';
+										}
+									}
+								}
+
+								function initToggle() {
+									const toggleBtn = document.getElementById('toggle-view-btn');
+									if (toggleBtn) {
+										toggleBtn.onclick = toggleView;
+									}
+								}
+
+								if (document.readyState === 'loading') {
+									document.addEventListener('DOMContentLoaded', () => {
+										initToggle();
+										const playerView = document.getElementById('player-view');
+										if (playerView && playerView.style.display !== 'none') {
+											initPlayer();
+										}
+									});
+								} else {
+									initToggle();
+									const playerView = document.getElementById('player-view');
+									if (playerView && playerView.style.display !== 'none') {
+										initPlayer();
+									}
+								}
+
+								document.addEventListener('astro:page-load', () => {
+									initToggle();
+									const playerView = document.getElementById('player-view');
+									if (playerView && playerView.style.display !== 'none') {
+										initPlayer();
+									}
+								});
+							})();
+						</script>
+					</div>
+
+					<div id="markdown-view" style={shouldShowPlayer ? 'display: none;' : ''}>
+						<header class="reading-sheet-header">
+							<div class="reading-sheet-meta">
+								<time datetime={entry.data.pubDate.toISOString()}>{formatReadingDate(entry.data.pubDate)}</time>
+								<span>{entry.data.kind}</span>
+							</div>
+							<h1 s>{entry.data.title}</h1>
+							{(entry.data.source || entry.data.author) && (
+								<p>
+									{entry.data.source}
+									{entry.data.source && entry.data.author ? ' / ' : ''}
+									{entry.data.author}
+								</p>
+							)}
+						</header>
+
+						<section class="reading-sheet-body">
+							<Content />
+						</section>
+
+						{entry.data.note && (
+							<section class="reading-sheet-note" aria-label="Note">
+								<p>{entry.data.note}</p>
+							</section>
+						)}
+					</div>
+
+				<footer class="reading-sheet-footer">
+					<div class="reading-sheet-tags">
+						{(entry.data.tags ?? []).map((tag) => (
+							<a href={`/reading?tag=${encodeURIComponent(tag)}`}>{tag}</a>
+						))}
+					</div>
+				</footer>
+			</article>
+
+			{relatedEntries.length > 0 && (
+				<section class="reading-related" aria-label="Related reading">
+					<h2>Related</h2>
+					<div>
+						{relatedEntries.map((item) => (
+							<a class="card card-hover" href={`/reading/${item.id}/`}>
+								<span>{item.data.kind}</span>
+								<strong>{item.data.title}</strong>
+							</a>
+						))}
+					</div>
+				</section>
+			)}
+		</main>
+		<Footer />
+
+		<style>
+			#lyrics-content .lyric-line {
+				padding: 0.75rem 1.25rem;
+				margin: 0.35rem 0;
+				border-radius: 8px;
+				font-size: 1.3rem;
+				line-height: 1.8;
+				text-align: center;
+				color: rgba(255, 255, 255, 0.45);
+				transition: all 0.2s ease;
+				white-space: pre-wrap;
+			}
+
+			#lyrics-content .lyric-line.active {
+				color: #93c5fd !important;
+				font-weight: 800 !important;
+				background: rgba(147, 197, 253, 0.25) !important;
+				transform: scale(1.02);
+			}
+
+			.reading-detail-main {
+				max-width: 980px;
+			}
+
+			.reading-sheet {
+				max-width: 100%;
+				margin: 0;
+			}
+			.reading-back {
+				margin: 0;
+			}
+			.reading-header-badges {
+				display: flex;
+				gap: 0.5rem;
+				margin-bottom: 1rem;
+			}
+			.view-toggle-badge {
+				cursor: pointer;
+				transition: all 0.2s ease;
+			}
+			.view-toggle-badge:hover {
+				transform: scale(1.05);
+				background: rgba(var(--accent-rgb), 0.2);
+			}
+
+			#audio-player-container {
+				position: relative;
+				z-index: 1;
+				background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+				border-radius: 16px;
+				padding: 1.5rem;
+				overflow: hidden;
+			}
+
+			.lyrics-container {
+				min-height: 380px;
+				max-height: 420px;
+				overflow-y: auto;
+				padding: 2rem 1.5rem;
+				margin-bottom: 1.5rem;
+				position: relative;
+			}
+
+			.lyrics-container::-webkit-scrollbar {
+				width: 6px;
+			}
+
+			.lyrics-container::-webkit-scrollbar-track {
+				background: rgba(255, 255, 255, 0.05);
+				border-radius: 3px;
+			}
+
+			.lyrics-container::-webkit-scrollbar-thumb {
+				background: rgba(255, 255, 255, 0.2);
+				border-radius: 3px;
+			}
+
+			.player-controls {
+				display: flex;
+				align-items: center;
+				gap: 1.25rem;
+				margin-bottom: 1rem;
+				padding: 1rem;
+				background: rgba(255, 255, 255, 0.03);
+				border-radius: 12px;
+				border: 1px solid rgba(255, 255, 255, 0.08);
+			}
+
+			.play-btn {
+				width: 60px;
+				height: 60px;
+				border-radius: 16px;
+				border: none;
+				background: rgba(255, 255, 255, 0.1);
+				color: white;
+				font-size: 1.75rem;
+				cursor: pointer;
+				transition: all 0.2s ease;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				flex-shrink: 0;
+				backdrop-filter: blur(10px);
+			}
+
+			.play-btn:hover {
+				background: rgba(255, 255, 255, 0.18);
+				transform: scale(1.05);
+			}
+
+			.song-info {
+				flex: 1;
+				min-width: 0;
+			}
+
+			.song-title {
+				margin: 0;
+				font-size: 1.35rem;
+				color: #ffffff;
+				font-weight: 700;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+
+			.song-artist {
+				margin: 0.25rem 0 0;
+				font-size: 1rem;
+				color: rgba(255, 255, 255, 0.6);
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+
+			.expand-btn {
+				width: 44px;
+				height: 44px;
+				border-radius: 12px;
+				background: rgba(255, 255, 255, 0.06);
+				border: 1px solid rgba(255, 255, 255, 0.1);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 1.1rem;
+				color: rgba(255, 255, 255, 0.5);
+				cursor: pointer;
+				transition: all 0.2s ease;
+				flex-shrink: 0;
+			}
+
+			.expand-btn:hover {
+				background: rgba(255, 255, 255, 0.12);
+			}
+
+			.progress-container {
+				display: flex;
+				align-items: center;
+				gap: 1rem;
+				padding: 0 0.5rem;
+			}
+
+			.progress-container span {
+				font-size: 0.9rem;
+				color: rgba(255, 255, 255, 0.7);
+				font-variant-numeric: tabular-nums;
+				min-width: 40px;
+				font-weight: 500;
+			}
+
+			#progress-bar {
+				flex: 1;
+				-webkit-appearance: none;
+				height: 8px;
+				border-radius: 4px;
+				background: rgba(255, 255, 255, 0.15);
+				outline: none;
+				cursor: pointer;
+			}
+
+			#progress-bar::-webkit-slider-thumb {
+				-webkit-appearance: none;
+				width: 18px;
+				height: 18px;
+				border-radius: 50%;
+				background: #93c5fd;
+				cursor: pointer;
+				box-shadow: 0 2px 8px rgba(147, 197, 253, 0.4);
+				transition: transform 0.15s ease;
+			}
+
+			#progress-bar::-webkit-slider-thumb:hover {
+				transform: scale(1.2);
+			}
+
+			.reading-sheet:has(#audio-player-container)::before,
+			.reading-sheet:has(#audio-player-container)::after {
+				display: none;
+			}
+			.reading-sheet {
+				position: relative;
+				/*max-width: 760px;*/
+				margin: 0 auto;
+				padding: clamp(1.45rem, 4.5vw, 4rem);
+				border: 1px solid rgba(var(--border), 0.92);
+				border-radius: 8px;
+				background:
+					linear-gradient(90deg, rgba(var(--gray-light), 0.4), transparent 1.5rem),
+					linear-gradient(rgba(var(--card), 0.98), rgba(var(--card), 0.92));
+				box-shadow:
+					0 1px 0 rgba(255, 255, 255, 0.5) inset,
+					0 28px 70px rgba(2, 6, 23, 0.12);
+				overflow: hidden;
+			}
+			.reading-sheet::before {
+				content: '';
+				position: absolute;
+				inset: 1rem;
+				border: 1px solid rgba(var(--border), 0.48);
+				border-radius: 6px;
+				pointer-events: none;
+			}
+			.reading-sheet::after {
+				content: '';
+				position: absolute;
+				right: -3rem;
+				bottom: -3rem;
+				width: 8rem;
+				height: 8rem;
+				background: linear-gradient(135deg, transparent 50%, rgba(var(--gray-light), 0.6) 51%);
+				transform: rotate(7deg);
+				pointer-events: none;
+			}
+			.reading-sheet-header,
+			.reading-sheet-body,
+			.reading-sheet-note,
+			.reading-sheet-footer {
+				position: relative;
+				z-index: 1;
+			}
+			.reading-sheet-header {
+				text-align: center;
+				margin: 0 0 clamp(1.5rem, 4vw, 3rem);
+			}
+			.reading-sheet-meta {
+				display: flex;
+				justify-content: center;
+				flex-wrap: wrap;
+				gap: 0.5rem;
+				margin: 0 0 0.9rem;
+				color: rgb(var(--gray));
+				font-size: 0.88rem;
+			}
+			.reading-sheet-meta span {
+				padding: 0.12rem 0.5rem;
+				border: 1px solid rgb(var(--border));
+				border-radius: 999px;
+				background: rgba(var(--gray-light), 0.18);
+			}
+			.reading-sheet h1 {
+				margin: 0;
+				font-size: 2rem;
+				letter-spacing: 0;
+			}
+			.reading-sheet-header p {
+				margin: 0.85rem 0 0;
+				color: rgb(var(--gray));
+				font-size: 1rem;
+			}
+			.reading-sheet-body {
+				max-width: 620px;
+				margin: 0 auto;
+				color: rgb(var(--black));
+				font-size: clamp(1rem, 1.8vw, 1.5rem);
+				line-height: 1.8;
+				text-align: left;
+			}
+			.reading-sheet-body :global(p) {
+				margin: 0;
+			}
+			.reading-sheet-body :global(p + p) {
+				margin-top: 0.75rem;
+			}
+			.reading-sheet-body :global(blockquote) {
+				margin: 0;
+				padding-left: 1rem;
+				border-left: 3px solid rgba(var(--accent-rgb), 0.45);
+				font-size: inherit;
+				line-height: inherit;
+			}
+			.reading-sheet-note {
+				max-width: 560px;
+				margin: clamp(1.5rem, 4vw, 3rem) auto 0;
+				padding-top: 1.1rem;
+				border-top: 1px solid rgba(var(--border), 0.85);
+				color: rgb(var(--gray));
+				font-size: 1.5rem;
+				line-height: 1.75;
+			}
+			.reading-sheet-note p {
+				margin: 0;
+			}
+			.reading-sheet-footer {
+				display: flex;
+				justify-content: center;
+				margin-top: 15px;
+			}
+			.reading-sheet-tags {
+				display: flex;
+				flex-wrap: wrap;
+				justify-content: center;
+				gap: 0.45rem;
+			}
+			.reading-sheet-tags a {
+				padding: 0.18rem 0.55rem;
+				border: 1px solid rgba(var(--border), 0.9);
+				border-radius: 999px;
+				background: rgba(var(--accent-rgb), 0.08);
+				color: rgb(var(--gray-dark));
+				font-size: 0.82rem;
+				font-weight: 700;
+			}
+			.reading-related {
+				/* max-width: 760px; */
+				margin: 1rem auto 0;
+			}
+			.reading-related h2 {
+				margin: 0 0 0.65rem;
+				font-size: 1.05rem;
+			}
+			.reading-related > div {
+				display: grid;
+				grid-template-columns: repeat(3, minmax(0, 1fr));
+				gap: 0.75rem;
+			}
+			.reading-related a {
+				display: grid;
+				gap: 0.2rem;
+				padding: 0.85rem;
+				color: rgb(var(--gray-dark));
+			}
+			.reading-related span {
+				color: rgb(var(--gray));
+				font-size: 0.8rem;
+			}
+			.reading-related strong {
+				color: rgb(var(--black));
+				font-size: 0.95rem;
+				line-height: 1.25;
+			}
+			@media (max-width: 720px) {
+				.reading-detail-main {
+					padding-left: var(--page-gutter);
+					padding-right: var(--page-gutter);
+				}
+				.reading-sheet {
+					padding: 1.4rem 1.1rem 1.25rem;
+				}
+				.reading-sheet::before {
+					inset: 0.65rem;
+				}
+				.reading-sheet-body {
+					font-size: 1rem;
+				}
+				.reading-related > div {
+					grid-template-columns: 1fr;
+				}
+			}
+		</style>
+	</body>
+</html>

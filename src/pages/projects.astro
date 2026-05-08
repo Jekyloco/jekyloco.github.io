@@ -8,19 +8,21 @@ import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
 <!doctype html>
 <html lang="en">
 	<head>
-		<BaseHead title={`Projects · ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+		<BaseHead title={`Reading · ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+		<meta http-equiv="refresh" content="0; url=/reading" />
+		<link rel="canonical" href="/reading" />
 	</head>
 	<body>
 		<Header />
 		<main>
 			<div class="page-header">
 				<div>
-					<h1 class="page-title">Projects</h1>
-					<p class="page-subtitle">A place to showcase your work.</p>
+					<h1 class="page-title">Reading</h1>
+					<p class="page-subtitle">Redirecting to the reading notebook.</p>
 				</div>
 			</div>
 			<div class="card sidebar-card">
-				<p style="margin: 0; color: rgb(var(--gray));">Add project cards, links, and descriptions here.</p>
+				<p style="margin: 0; color: rgb(var(--gray));"><a href="/reading">Open Reading</a></p>
 			</div>
 		</main>
 		<Footer />

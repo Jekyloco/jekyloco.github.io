@@ -19,4 +19,19 @@ const blog = defineCollection({
 		}),
 });
 
-export const collections = { blog };
+const reading = defineCollection({
+	loader: glob({ base: './src/content/reading', pattern: '**/*.{md,mdx}' }),
+	schema: z.object({
+		title: z.string(),
+		pubDate: z.coerce.date(),
+		kind: z.enum(['Book Note', 'Poem', 'Lyric', 'Excerpt']),
+		source: z.string().optional(),
+		author: z.string().optional(),
+		tags: z.array(z.string()).optional().default([]),
+		note: z.string().optional(),
+		song_path: z.string().optional(),
+		lrc_path: z.string().optional(),
+	}),
+});
+
+export const collections = { blog, reading };

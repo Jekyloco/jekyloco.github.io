@@ -24,7 +24,7 @@ const lrcFiles = new Map(
 );
 const mediaPath = (file: string) => `/media/${encodeURIComponent(file)}`;
 const scannedPlaylist = mediaFiles
-	.filter((file) => extname(file).toLowerCase() === '.flac')
+	.filter((file) => ['.mp3', '.flac'].includes(extname(file).toLowerCase()))
 	.sort((a, b) => a.localeCompare(b))
 	.map((file) => {
 		const name = basename(file, extname(file));
@@ -54,8 +54,8 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 			</a>
 			<nav class="nav-links" id="primary-nav" aria-label="Primary">
 				<HeaderLink href="/blog">Posts</HeaderLink>
-				<HeaderLink href="/docs">Docs</HeaderLink>
-				<HeaderLink href="/projects">Projects</HeaderLink>
+				<HeaderLink href="/archive">Archive</HeaderLink>
+				<HeaderLink href="/reading">Reading</HeaderLink>
 				<HeaderLink href="/links">Links</HeaderLink>
 				<HeaderLink href="/about">About</HeaderLink>
 			</nav>

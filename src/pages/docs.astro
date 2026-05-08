@@ -8,24 +8,25 @@ import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
 <!doctype html>
 <html lang="en">
 	<head>
-		<BaseHead title={`Docs · ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+		<BaseHead title={`Archive · ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+		<meta http-equiv="refresh" content="0; url=/archive" />
+		<link rel="canonical" href="/archive" />
 	</head>
 	<body>
 		<Header />
 		<main>
 			<div class="page-header">
 				<div>
-					<h1 class="page-title">Docs</h1>
-					<p class="page-subtitle">Notes and documentation for the posts.</p>
+					<h1 class="page-title">Archive</h1>
+					<p class="page-subtitle">Redirecting to the post archive.</p>
 				</div>
 			</div>
 			<div class="card sidebar-card">
 				<p style="margin: 0; color: rgb(var(--gray));">
-					Add your documentation content here. This page exists to match the top navigation of the theme.
+					<a href="/archive">Open Archive</a>
 				</p>
 			</div>
 		</main>
 		<Footer />
 	</body>
 </html>
-

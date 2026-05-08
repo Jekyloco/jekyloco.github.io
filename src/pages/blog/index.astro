@@ -147,7 +147,7 @@ const archives: ArchiveItem[] = [...archiveCounts.entries()]
 						</div>
 						<div class="tag-cloud">
 							{allTags.map(([tag, count]) => (
-								<a class="badge" href={`/blog?tag=${encodeURIComponent(tag)}`} data-tag-link={tag}>
+								<a class="badge" href={`/archive?tag=${encodeURIComponent(tag)}`}>
 									{tag} <span aria-hidden="true">·</span> {count}
 								</a>
 							))}
@@ -162,8 +162,7 @@ const archives: ArchiveItem[] = [...archiveCounts.entries()]
 							{archives.map((item) => (
 								<a
 									class="sidebar-item"
-									href={`/blog?ym=${encodeURIComponent(item.ym)}`}
-									data-archive-link={item.ym}
+									href={`/archive?ym=${encodeURIComponent(item.ym)}`}
 								>
 									<span class="sidebar-item-title">
 										{item.year} / {String(item.month).padStart(2, '0')}

@@ -1,0 +1,506 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import { getCollection } from 'astro:content';
+import { formatReadingDate, getReadingPreviewLines } from '../data/readingEntries';
+import AuthorAvatar from '../images/murakami.jpg';
+
+const entries = (await getCollection('reading')).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+const kinds = [...new Set(entries.map((entry) => entry.data.kind))];
+const tags = [...new Set(entries.flatMap((entry) => entry.data.tags ?? []))].sort((a, b) => a.localeCompare(b));
+const recentAuthor = {
+	name: '村上春树',
+	avatar: AuthorAvatar,
+	description:
+		'一个爱跑步，爱写作的老头。——《当我谈跑步时，我在谈些什么》阅读ing~',
+};
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={`Reading · ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+	</head>
+	<body>
+		<Header />
+		<main>
+			<section class="reading-hero">
+
+			</section>
+			<section class="split-layout reading-layout">
+				<div class="reading-shelf">
+									<div class="reading-hero-copy">
+					<p class="reading-kicker">Notebook</p>
+					<h1 class="page-title">Reading</h1>
+					<p class="page-subtitle">Fragments, poems, lyrics, and notes kept like folded pages.</p>
+				</div>
+					<a class="badge reading-clear" href="/reading" id="reading-clear" hidden>Clear filter</a>
+
+					<div class="reading-grid" id="reading-grid">
+						{entries.map((entry) => (
+							<article
+								class="reading-page-card"
+								data-reading-entry
+								data-kind={entry.data.kind}
+								data-tags={(entry.data.tags ?? []).join(',')}
+							>
+								<a href={`/reading/${entry.id}/`} class="reading-page-link">
+									<span class="reading-page-meta">
+										<time datetime={entry.data.pubDate.toISOString()}>{formatReadingDate(entry.data.pubDate)}</time>
+										<span>{entry.data.kind}</span>
+									</span>
+									<h3>{entry.data.title}</h3>
+									<blockquote>
+										{getReadingPreviewLines(entry.body).map((line) => <span>{line}</span>)}
+									</blockquote>
+									<span class="reading-page-tags">
+										{(entry.data.tags ?? []).slice(0, 4).map((tag) => (
+											<span>{tag}</span>
+										))}
+									</span>
+								</a>
+							</article>
+						))}
+					</div>
+					<nav class="reading-pagination" id="reading-pagination" aria-label="Reading pages" hidden>
+						<button class="badge" id="reading-prev" type="button">Prev</button>
+						<span id="reading-page-status"></span>
+						<button class="badge" id="reading-next" type="button">Next</button>
+					</nav>
+				</div>
+
+				<aside class="sidebar reading-sidebar">
+					<div class="card sidebar-card reading-author-card">
+						<div class="reading-author-avatar">
+							<img src={recentAuthor.avatar.src} width="150" height="150" alt={recentAuthor.name} loading="lazy" />
+						</div>
+						<div>
+							<p class="reading-author-label">最近灵魂交流的对象</p>
+							<h2 style="padding-top: 7px;">{recentAuthor.name}</h2>
+							<p>{recentAuthor.description}</p>
+						</div>
+					</div>
+
+					<div class="card sidebar-card">
+						<div class="sidebar-title">
+							<span>Types</span>
+							<a class="badge" href="/reading" data-reading-all>All</a>
+						</div>
+						<div class="reading-filter-list">
+							{kinds.map((kind) => (
+								<a href={`/reading?kind=${encodeURIComponent(kind)}`} data-reading-kind={kind}>
+									<span>{kind}</span>
+									<span>{entries.filter((entry) => entry.data.kind === kind).length}</span>
+								</a>
+							))}
+						</div>
+					</div>
+
+					<div class="card sidebar-card">
+						<div class="sidebar-title">
+							<span>Tags</span>
+						</div>
+						<div class="tag-cloud">
+							{tags.map((tag) => (
+								<a class="badge" href={`/reading?tag=${encodeURIComponent(tag)}`} data-reading-tag={tag}>
+									{tag}
+								</a>
+							))}
+						</div>
+					</div>
+				</aside>
+			</section>
+		</main>
+		<Footer />
+
+		<script is:inline data-astro-rerun>
+			(() => {
+				if (window.__readingPageCleanup) window.__readingPageCleanup();
+
+				const cleanups = [];
+				const on = (target, event, handler, options) => {
+					target.addEventListener(event, handler, options);
+					cleanups.push(() => target.removeEventListener(event, handler, options));
+				};
+
+				const entries = Array.from(document.querySelectorAll('[data-reading-entry]'));
+				const links = Array.from(document.querySelectorAll('[data-reading-kind],[data-reading-tag],[data-reading-all]'));
+				const clear = document.getElementById('reading-clear');
+				const pagination = document.getElementById('reading-pagination');
+				const prev = document.getElementById('reading-prev');
+				const next = document.getElementById('reading-next');
+				const pageStatus = document.getElementById('reading-page-status');
+				const pageSize = 6;
+				let currentPage = 1;
+
+				window.__readingPageCleanup = () => {
+					for (const cleanup of cleanups) cleanup();
+				};
+
+				const setParams = (next) => {
+					const url = new URL(window.location.href);
+					for (const key of ['kind', 'tag']) url.searchParams.delete(key);
+					for (const [key, value] of Object.entries(next)) {
+						if (value) url.searchParams.set(key, String(value));
+					}
+					window.history.pushState({}, '', url);
+					currentPage = 1;
+					apply();
+				};
+
+				const apply = () => {
+					const params = new URLSearchParams(window.location.search);
+					const kind = params.get('kind');
+					const tag = params.get('tag');
+					const filtered = [];
+
+					for (const entry of entries) {
+						const tags = (entry.getAttribute('data-tags') ?? '').split(',').filter(Boolean);
+						const visible = (!kind || entry.getAttribute('data-kind') === kind) && (!tag || tags.includes(tag));
+						if (visible) filtered.push(entry);
+						entry.hidden = true;
+					}
+
+					const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
+					currentPage = Math.min(currentPage, pages);
+					const start = (currentPage - 1) * pageSize;
+					for (const entry of filtered.slice(start, start + pageSize)) entry.hidden = false;
+
+					if (clear) clear.hidden = !(kind || tag);
+					if (pagination && prev instanceof HTMLButtonElement && next instanceof HTMLButtonElement) {
+						pagination.hidden = filtered.length <= pageSize;
+						prev.disabled = currentPage <= 1;
+						next.disabled = currentPage >= pages;
+					}
+					if (pageStatus) pageStatus.textContent = `Page ${currentPage} / ${pages}`;
+
+					for (const link of links) {
+						const active =
+							(link.getAttribute('data-reading-kind') && link.getAttribute('data-reading-kind') === kind) ||
+							(link.getAttribute('data-reading-tag') && link.getAttribute('data-reading-tag') === tag);
+						if (active) link.setAttribute('aria-current', 'true');
+						else link.removeAttribute('aria-current');
+					}
+				};
+
+				for (const link of links) {
+					on(link, 'click', (event) => {
+						const anchor = event.currentTarget;
+						if (!(anchor instanceof HTMLAnchorElement)) return;
+						event.preventDefault();
+						setParams({
+							kind: anchor.getAttribute('data-reading-kind'),
+							tag: anchor.getAttribute('data-reading-tag'),
+						});
+					});
+				}
+
+				if (clear instanceof HTMLAnchorElement) {
+					on(clear, 'click', (event) => {
+						event.preventDefault();
+						setParams({});
+					});
+				}
+				if (prev instanceof HTMLButtonElement) {
+					on(prev, 'click', () => {
+						currentPage = Math.max(1, currentPage - 1);
+						apply();
+					});
+				}
+				if (next instanceof HTMLButtonElement) {
+					on(next, 'click', () => {
+						currentPage += 1;
+						apply();
+					});
+				}
+
+				on(window, 'popstate', apply);
+				apply();
+			})();
+		</script>
+
+		<style>
+			main {
+				--container: 1320px;
+				--reading-card-height: 240px;
+				padding-top: 0px;
+			}
+			.reading-hero {
+				margin: 1.25rem 0 1rem;
+			}
+			.reading-hero-copy {
+				width: 100%;
+				padding: 1.2rem 1.25rem;
+				margin-bottom: 15px;
+				/* border: 1px solid rgba(var(--border), 0.92); */
+				/* border-radius: 14px;
+				background:
+					linear-gradient(90deg, rgba(var(--gray-light), 0.34), transparent 1.25rem),
+					rgba(var(--card), var(--card-alpha));
+				box-shadow: 0 14px 34px rgba(2, 6, 23, 0.06); */
+			}
+			.reading-kicker {
+				margin: 0 0 0.35rem;
+				color: rgb(var(--gray));
+				font-size: 0.92rem;
+				font-weight: 700;
+				letter-spacing: 0;
+				text-transform: uppercase;
+			}
+			.reading-layout {
+				grid-template-columns: minmax(0, 1fr) 300px;
+				align-items: stretch;
+			}
+			.reading-shelf {
+				min-width: 0;
+				display: flex;
+				flex-direction: column;
+			}
+			.reading-clear {
+				margin: 0 0 0.85rem;
+			}
+			.reading-grid {
+				display: grid;
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+				grid-auto-rows: var(--reading-card-height);
+				gap: 1rem;
+			}
+			.reading-page-card {
+				height: var(--reading-card-height);
+				perspective: 1000px;
+			}
+			.reading-page-link {
+				position: relative;
+				display: flex;
+				flex-direction: column;
+				height: 100%;
+				padding: 1.35rem 1.35rem 1.15rem;
+				border: 1px solid rgba(var(--border), 0.92);
+				border-radius: 8px;
+				background:
+					linear-gradient(90deg, rgba(var(--gray-light), 0.42), transparent 1.2rem),
+					linear-gradient(rgba(var(--card), 0.96), rgba(var(--card), 0.9));
+				box-shadow:
+					0 1px 0 rgba(255, 255, 255, 0.5) inset,
+					0 18px 34px rgba(2, 6, 23, 0.08);
+				color: rgb(var(--gray-dark));
+				overflow: hidden;
+				transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+			}
+			.reading-page-link::before,
+			.reading-page-link::after {
+				content: '';
+				position: absolute;
+				pointer-events: none;
+			}
+			.reading-page-link::before {
+				inset: 0.8rem 0.85rem;
+				border: 1px solid rgba(var(--border), 0.42);
+				border-radius: 6px;
+			}
+			.reading-page-link::after {
+				right: -2.5rem;
+				bottom: -2.5rem;
+				width: 6rem;
+				height: 6rem;
+				background: linear-gradient(135deg, transparent 50%, rgba(var(--gray-light), 0.55) 51%);
+				transform: rotate(6deg);
+			}
+			.reading-page-card:hover .reading-page-link {
+				transform: translateY(-4px) rotateX(1deg);
+				border-color: rgba(var(--accent-rgb), 0.38);
+				box-shadow: 0 24px 46px rgba(2, 6, 23, 0.13);
+			}
+			.reading-page-meta {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.45rem;
+				align-items: center;
+				color: rgb(var(--gray));
+				font-size: 0.84rem;
+				line-height: 1.35;
+			}
+			.reading-page-meta span {
+				padding: 0.1rem 0.42rem;
+				border: 1px solid rgba(var(--border), 0.9);
+				border-radius: 999px;
+				background: rgba(var(--gray-light), 0.18);
+			}
+			.reading-page-link h3 {
+				margin: 0.85rem 0 0.85rem;
+				color: rgb(var(--black));
+				font-size: 1.35rem;
+				line-height: 1.22;
+			}
+			.reading-page-link blockquote {
+				margin: 0;
+				padding: 0;
+				border: 0;
+				color: rgb(var(--gray-dark));
+				font-size: 1.08rem;
+				line-height: 1.65;
+				overflow: hidden;
+				display: -webkit-box;
+				-webkit-box-orient: vertical;
+				-webkit-line-clamp: 4;
+			}
+			.reading-page-link blockquote span {
+				display: block;
+			}
+			.reading-page-tags {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.35rem;
+				margin-top: auto;
+				padding-top: 1rem;
+			}
+			.reading-page-tags span {
+				padding: 0.14rem 0.46rem;
+				border: 1px solid rgba(var(--border), 0.9);
+				border-radius: 999px;
+				background: rgba(var(--accent-rgb), 0.08);
+				color: rgb(var(--gray));
+				font-size: 0.76rem;
+				font-weight: 700;
+			}
+			.reading-pagination {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				gap: 0.7rem;
+				margin: 1rem 0 0;
+				padding-top: 1rem;
+			}
+			.reading-pagination button {
+				cursor: pointer;
+			}
+			.reading-pagination button:disabled {
+				cursor: default;
+				opacity: 0.45;
+				box-shadow: none;
+			}
+			.reading-pagination span {
+				color: rgb(var(--gray));
+				font-size: 0.9rem;
+				font-variant-numeric: tabular-nums;
+			}
+			.reading-sidebar {
+				position: sticky;
+				top: 5rem;
+				display: grid;
+				grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
+			}
+			.reading-author-card {
+				display: grid;
+				gap: 0.85rem;
+				text-align: center;
+				overflow: hidden;
+			}
+			.reading-author-avatar {
+				width: 104px;
+				height: 104px;
+				margin: 0 auto;
+				padding: 0.28rem;
+				border: 1px solid rgba(var(--border), 0.92);
+				border-radius: 999px;
+				background: rgba(var(--card), 0.86);
+				box-shadow: 0 14px 28px rgba(2, 6, 23, 0.1);
+			}
+			.reading-author-avatar img {
+				display: block;
+				width: 100%;
+				height: 100%;
+				object-fit: cover;
+				border-radius: 999px;
+			}
+			.reading-author-label {
+				margin: 0 0 0.15rem;
+				color: rgb(var(--gray));
+				font-size: 1rem;
+				font-weight: 750;
+				line-height: 1.2;
+				text-transform: uppercase;
+			}
+			.reading-author-card h2 {
+				margin: 0;
+				color: rgb(var(--black));
+				font-size: 2rem;
+			}
+			.reading-author-card p:last-child {
+				margin: 0.55rem 0 0;
+				color: rgb(var(--gray));
+				font-size: 1.1rem;
+				line-height: 1.65;
+			}
+			.reading-filter-list {
+				display: grid;
+				gap: 0.5rem;
+			}
+			.reading-filter-list a {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 0.75rem;
+				padding: 0.55rem 0.7rem;
+				border: 1px solid rgb(var(--border));
+				border-radius: 12px;
+				background: rgba(var(--gray-light), 0.16);
+				color: rgb(var(--gray-dark));
+				font-size: 0.92rem;
+				font-weight: 700;
+				transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+			}
+			.reading-filter-list a:hover {
+				transform: translateX(2px);
+				background: rgba(var(--gray-light), 0.28);
+				border-color: rgba(var(--border), 0.78);
+			}
+			.reading-filter-list a[aria-current='true'],
+			.reading-sidebar .tag-cloud [aria-current='true'] {
+				border-color: rgba(var(--accent-rgb), 0.42);
+				background: rgba(var(--accent-rgb), 0.14);
+			}
+			@media (max-width: 980px) {
+				main {
+					--reading-card-height: 240px;
+				}
+				.reading-grid {
+					grid-template-columns: 1fr;
+				}
+				.reading-sidebar {
+					min-height: auto;
+				}
+			}
+			@media (max-width: 900px) {
+				.reading-layout {
+					grid-template-columns: 1fr;
+				}
+				.reading-sidebar {
+					position: static;
+					display: flex;
+				}
+			}
+			@media (max-width: 720px) {
+				main {
+					--reading-card-height: 230px;
+				}
+				.reading-hero-copy {
+					padding: 1rem;
+				}
+				.reading-page-link {
+					padding: 1.15rem 1rem 1rem;
+				}
+				.reading-page-link h3 {
+					font-size: 1.2rem;
+				}
+				.reading-page-link blockquote {
+					font-size: 1.04rem;
+				}
+			}
+		</style>
+	</body>
+</html>

@@ -1,0 +1,502 @@
+---
+import { getCollection } from 'astro:content';
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import FormattedDate from '../components/FormattedDate.astro';
+import Header from '../components/Header.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import { countPostBodyCharacters, formatPostBodyCharCount } from '../utils/postBodyStats';
+
+const posts = (await getCollection('blog')).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+
+const tagCounts = new Map<string, number>();
+for (const post of posts) {
+	for (const tag of post.data.tags ?? []) {
+		tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+	}
+}
+const allTags = [...tagCounts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+
+type MonthItem = { ym: string; year: number; month: number; count: number };
+const monthCounts = new Map<string, number>();
+for (const post of posts) {
+	const year = post.data.pubDate.getFullYear();
+	const month = post.data.pubDate.getMonth() + 1;
+	const ym = `${year}-${String(month).padStart(2, '0')}`;
+	monthCounts.set(ym, (monthCounts.get(ym) ?? 0) + 1);
+}
+const months: MonthItem[] = [...monthCounts.entries()]
+	.map(([ym, count]) => {
+		const [year, month] = ym.split('-').map((n) => Number.parseInt(n, 10));
+		return { ym, year, month, count };
+	})
+	.sort((a, b) => b.ym.localeCompare(a.ym));
+
+const postsByYear = new Map<number, typeof posts>();
+for (const post of posts) {
+	const year = post.data.pubDate.getFullYear();
+	postsByYear.set(year, [...(postsByYear.get(year) ?? []), post]);
+}
+const yearGroups = [...postsByYear.entries()].sort((a, b) => b[0] - a[0]);
+const latestPosts = posts.slice(0, 5);
+
+const formatMachineDate = (date: Date) => {
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, '0');
+	return `${year}-${month}-${day}`;
+};
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={`Archive · ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+	</head>
+	<body>
+		<Header />
+		<main>
+			<div class="page-header archive-page-header">
+				<div>
+					<h1 class="page-title">Archive</h1>
+					<p class="page-subtitle" id="archive-subtitle">All posts in one flowing timeline.</p>
+				</div>
+				<a class="badge" href="/blog">Card View</a>
+			</div>
+
+			<section class="split-layout archive-layout">
+				<div class="card archive-panel">
+					<div class="archive-total">
+						<span class="archive-total-dot" aria-hidden="true"></span>
+						<span id="archive-heading">All Posts - {posts.length}</span>
+					</div>
+					<div class="archive-filter-bar" id="archive-filter-bar" hidden>
+						<span id="archive-filter-label"></span>
+						<a class="badge" href="/archive" id="archive-clear">Clear</a>
+					</div>
+					<div class="archive-timeline" id="archive-timeline">
+						{
+							yearGroups.map(([year, yearPosts]) => (
+								<section class="archive-year-group" data-year-group={year}>
+									<h2 class="archive-year">
+										<span class="archive-year-dot" aria-hidden="true"></span>
+										{year}
+									</h2>
+									<div class="archive-items">
+										{yearPosts.map((post) => {
+											const tags = post.data.tags ?? [];
+											const month = post.data.pubDate.getMonth() + 1;
+											const ym = `${post.data.pubDate.getFullYear()}-${String(month).padStart(2, '0')}`;
+											return (
+												<article
+													class="archive-entry"
+													data-archive-entry
+													data-title={post.data.title}
+													data-tags={tags.join(',')}
+													data-ym={ym}
+												>
+													<a class="archive-entry-link" href={`/blog/${post.id}/`}>
+														<span class="archive-entry-dot" aria-hidden="true"></span>
+														<span class="archive-entry-body">
+															<span class="archive-entry-meta">
+																<span class="archive-date-icon" aria-hidden="true">
+																	<svg viewBox="0 0 24 24" width="14" height="14">
+																		<path
+																			fill="currentColor"
+																			d="M7 2a1 1 0 011 1v1h8V3a1 1 0 112 0v1h1a3 3 0 013 3v11a3 3 0 01-3 3H5a3 3 0 01-3-3V7a3 3 0 013-3h1V3a1 1 0 011-1zm13 8H4v8a1 1 0 001 1h14a1 1 0 001-1v-8zM5 6a1 1 0 00-1 1v1h16V7a1 1 0 00-1-1H5z"
+																		/>
+																	</svg>
+																</span>
+																<time datetime={formatMachineDate(post.data.pubDate)}>
+																	{formatMachineDate(post.data.pubDate)}
+																</time>
+																<span>{formatPostBodyCharCount(countPostBodyCharacters(post.body))}</span>
+																<span>{post.data.lang}</span>
+															</span>
+															<span class="archive-entry-title">{post.data.title}</span>
+															{tags.length > 0 && (
+																<span class="archive-entry-tags" aria-label="Tags">
+																	{tags.slice(0, 3).map((tag) => (
+																		<span>{tag}</span>
+																	))}
+																</span>
+															)}
+														</span>
+													</a>
+												</article>
+											);
+										})}
+									</div>
+								</section>
+							))
+						}
+					</div>
+				</div>
+
+				<aside class="sidebar archive-sidebar">
+					<div class="card sidebar-card">
+						<div class="sidebar-title">
+							<span>Tags</span>
+							<a class="badge" href="/archive" id="archive-view-all">View all</a>
+						</div>
+						<div class="tag-cloud">
+							{allTags.map(([tag, count]) => (
+								<a class="badge" href={`/archive?tag=${encodeURIComponent(tag)}`} data-archive-tag-link={tag}>
+									{tag} <span aria-hidden="true">·</span> {count}
+								</a>
+							))}
+						</div>
+					</div>
+
+					<div class="card sidebar-card">
+						<div class="sidebar-title">
+							<span>Months</span>
+						</div>
+						<div class="sidebar-list">
+							{months.map((item) => (
+								<a
+									class="sidebar-item"
+									href={`/archive?ym=${encodeURIComponent(item.ym)}`}
+									data-archive-month-link={item.ym}
+								>
+									<span class="sidebar-item-title">
+										{item.year} / {String(item.month).padStart(2, '0')}
+									</span>
+									<span class="sidebar-item-meta">{item.count} posts</span>
+								</a>
+							))}
+						</div>
+					</div>
+
+					<div class="card sidebar-card">
+						<div class="sidebar-title">
+							<span>Latest</span>
+						</div>
+						<div class="sidebar-list">
+							{latestPosts.map((post) => (
+								<a class="sidebar-item" href={`/blog/${post.id}/`}>
+									<span class="sidebar-item-title">{post.data.title}</span>
+									<span class="sidebar-item-meta">
+										<FormattedDate date={post.data.pubDate} />
+									</span>
+								</a>
+							))}
+						</div>
+					</div>
+				</aside>
+			</section>
+		</main>
+		<Footer />
+
+		<script is:inline data-astro-rerun>
+			(() => {
+				if (window.__archivePageCleanup) window.__archivePageCleanup();
+
+				const cleanups = [];
+				const on = (target, event, handler, options) => {
+					target.addEventListener(event, handler, options);
+					cleanups.push(() => target.removeEventListener(event, handler, options));
+				};
+
+				const entries = Array.from(document.querySelectorAll('[data-archive-entry]'));
+				const groups = Array.from(document.querySelectorAll('[data-year-group]'));
+				const heading = document.getElementById('archive-heading');
+				const subtitle = document.getElementById('archive-subtitle');
+				const filterBar = document.getElementById('archive-filter-bar');
+				const filterLabel = document.getElementById('archive-filter-label');
+				const allLinks = Array.from(document.querySelectorAll('[data-archive-tag-link],[data-archive-month-link]'));
+				const total = entries.length;
+
+				window.__archivePageCleanup = () => {
+					for (const cleanup of cleanups) cleanup();
+				};
+
+				const setParams = (next) => {
+					const url = new URL(window.location.href);
+					for (const [key, value] of Object.entries(next)) {
+						if (!value) url.searchParams.delete(key);
+						else url.searchParams.set(key, String(value));
+					}
+					window.history.pushState({}, '', url);
+					apply();
+				};
+
+				const apply = () => {
+					const params = new URLSearchParams(window.location.search);
+					const tag = params.get('tag')?.trim();
+					const ym = params.get('ym')?.trim();
+					let shown = 0;
+
+					for (const entry of entries) {
+						const tags = (entry.getAttribute('data-tags') ?? '')
+							.split(',')
+							.map((item) => item.trim())
+							.filter(Boolean);
+						const matchesTag = !tag || tags.includes(tag);
+						const matchesMonth = !ym || entry.getAttribute('data-ym') === ym;
+						const visible = matchesTag && matchesMonth;
+						entry.hidden = !visible;
+						if (visible) shown += 1;
+					}
+
+					for (const group of groups) {
+						const visibleEntries = Array.from(group.querySelectorAll('[data-archive-entry]')).filter((entry) => !entry.hidden);
+						group.hidden = visibleEntries.length === 0;
+					}
+
+					const labelParts = [];
+					if (tag) labelParts.push(`Tag: ${tag}`);
+					if (ym) labelParts.push(`Month: ${ym}`);
+					const label = labelParts.join(' / ');
+
+					if (heading) heading.textContent = `${label || 'All Posts'} - ${shown}`;
+					if (subtitle) subtitle.textContent = label ? `Showing ${shown} of ${total} posts / ${label}` : 'All posts in one flowing timeline.';
+					if (filterBar) filterBar.hidden = !label;
+					if (filterLabel) filterLabel.textContent = label;
+
+					for (const link of allLinks) {
+						const linkTag = link.getAttribute('data-archive-tag-link');
+						const linkMonth = link.getAttribute('data-archive-month-link');
+						if ((linkTag && linkTag === tag) || (linkMonth && linkMonth === ym)) link.setAttribute('aria-current', 'true');
+						else link.removeAttribute('aria-current');
+					}
+				};
+
+				for (const link of allLinks) {
+					on(link, 'click', (event) => {
+						const anchor = event.currentTarget;
+						if (!(anchor instanceof HTMLAnchorElement)) return;
+						const tag = anchor.getAttribute('data-archive-tag-link');
+						const ym = anchor.getAttribute('data-archive-month-link');
+						event.preventDefault();
+						setParams({ tag: tag ?? null, ym: ym ?? null });
+					});
+				}
+
+				for (const id of ['archive-clear', 'archive-view-all']) {
+					const link = document.getElementById(id);
+					if (link instanceof HTMLAnchorElement) {
+						on(link, 'click', (event) => {
+							event.preventDefault();
+							setParams({ tag: null, ym: null });
+						});
+					}
+				}
+
+				on(window, 'popstate', apply);
+				apply();
+			})();
+		</script>
+
+		<style>
+			.archive-page-header {
+				align-items: end;
+			}
+			.archive-layout {
+				grid-template-columns: minmax(0, 1fr) 320px;
+			}
+			.archive-panel {
+				position: relative;
+				padding: clamp(1.35rem, 3vw, 2.5rem) clamp(1rem, 3.4vw, 2.75rem);
+				overflow: hidden;
+			}
+			.archive-panel::before {
+				content: '';
+				position: absolute;
+				top: 3.5rem;
+				bottom: 2rem;
+				left: clamp(1.65rem, 3.4vw, 3rem);
+				width: 2px;
+				background: linear-gradient(
+					to bottom,
+					rgba(var(--accent-rgb), 0.2),
+					rgba(var(--accent-rgb), 0.62),
+					rgba(var(--accent-rgb), 0.14)
+				);
+			}
+			.archive-total,
+			.archive-year,
+			.archive-entry-link {
+				position: relative;
+				z-index: 1;
+			}
+			.archive-total {
+				display: flex;
+				align-items: center;
+				gap: 0.9rem;
+				margin: 0 0 1.7rem;
+				color: rgb(var(--black));
+				font-size: clamp(1.35rem, 2.2vw, 1.9rem);
+				font-weight: 750;
+				line-height: 1.2;
+			}
+			.archive-total-dot,
+			.archive-year-dot,
+			.archive-entry-dot {
+				flex: 0 0 auto;
+				border-radius: 999px;
+				background: rgb(var(--card));
+				box-shadow: 0 0 0 4px rgba(var(--card), 0.8);
+			}
+			.archive-total-dot {
+				width: 16px;
+				height: 16px;
+				border: 4px solid rgb(var(--accent-rgb));
+			}
+			.archive-filter-bar {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 0.75rem;
+				margin: -0.7rem 0 1.2rem 2.05rem;
+				color: rgb(var(--gray));
+				font-size: 0.95rem;
+			}
+			.archive-year-group {
+				margin: 0 0 1.7rem;
+			}
+			.archive-year-group:last-child {
+				margin-bottom: 0;
+			}
+			.archive-year {
+				display: flex;
+				align-items: center;
+				gap: 1.15rem;
+				margin: 0 0 1.05rem;
+				color: rgb(var(--gray-dark));
+				font-size: 1.6rem;
+				font-weight: 650;
+			}
+			.archive-year-dot {
+				width: 10px;
+				height: 10px;
+				border: 3px solid #fb7a4a;
+			}
+			.archive-items {
+				display: grid;
+				gap: 0.6rem;
+			}
+			.archive-entry {
+				transition: opacity 160ms ease, transform 160ms ease;
+			}
+			.archive-entry-link {
+				display: grid;
+				grid-template-columns: 12px minmax(0, 1fr);
+				gap: 1.25rem;
+				padding: 0.65rem 0 0.8rem;
+				color: rgb(var(--gray-dark));
+			}
+			.archive-entry-link:hover {
+				color: rgb(var(--black));
+			}
+			.archive-entry-dot {
+				width: 10px;
+				height: 10px;
+				margin-top: 0.63rem;
+				border: 3px solid rgb(var(--accent-rgb));
+				transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+			}
+			.archive-entry-body {
+				display: grid;
+				gap: 0.24rem;
+				min-width: 0;
+				padding: 0.25rem 0.7rem;
+				border-radius: 10px;
+				transition: background 160ms ease, transform 160ms ease;
+			}
+			.archive-entry-link:hover .archive-entry-body {
+				background: rgba(var(--gray-light), 0.22);
+				transform: translateX(4px);
+			}
+			.archive-entry-link:hover .archive-entry-dot {
+				border-color: #fb7a4a;
+				box-shadow: 0 0 0 5px rgba(var(--accent-rgb), 0.12);
+				transform: scale(1.15);
+			}
+			.archive-entry-meta {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: center;
+				gap: 0.45rem;
+				color: rgb(var(--gray));
+				font-size: 0.86rem;
+				line-height: 1.35;
+			}
+			.archive-date-icon {
+				display: inline-flex;
+				color: rgb(var(--gray));
+			}
+			.archive-entry-title {
+				color: rgb(var(--gray-dark));
+				font-size: 1.05rem;
+				font-weight: 700;
+				line-height: 1.45;
+			}
+			.archive-entry-tags {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.35rem;
+				margin-top: 0.12rem;
+			}
+			.archive-entry-tags span {
+				padding: 0.12rem 0.45rem;
+				border: 1px solid rgba(var(--border), 0.9);
+				border-radius: 999px;
+				background: rgba(var(--accent-rgb), 0.08);
+				color: rgb(var(--gray));
+				font-size: 0.75rem;
+				font-weight: 650;
+				line-height: 1.25;
+			}
+			.archive-sidebar {
+				position: sticky;
+				top: 5rem;
+			}
+			.archive-sidebar .tag-cloud [aria-current='true'],
+			.archive-sidebar .sidebar-item[aria-current='true'] {
+				border-color: rgba(var(--accent-rgb), 0.42);
+				background: rgba(var(--accent-rgb), 0.14);
+			}
+			@media (max-width: 900px) {
+				.archive-layout {
+					grid-template-columns: 1fr;
+				}
+				.archive-sidebar {
+					position: static;
+				}
+			}
+			@media (max-width: 720px) {
+				.archive-page-header {
+					align-items: flex-start;
+				}
+				.archive-panel {
+					padding: 1.15rem 0.95rem 1.4rem;
+				}
+				.archive-panel::before {
+					left: 1.46rem;
+				}
+				.archive-total {
+					gap: 0.75rem;
+					margin-bottom: 1.25rem;
+				}
+				.archive-filter-bar {
+					margin-left: 1.65rem;
+					align-items: flex-start;
+					flex-direction: column;
+				}
+				.archive-year {
+					gap: 0.95rem;
+					font-size: 1.35rem;
+				}
+				.archive-entry-link {
+					gap: 0.95rem;
+				}
+				.archive-entry-body {
+					padding-right: 0.25rem;
+				}
+			}
+		</style>
+	</body>
+</html>
