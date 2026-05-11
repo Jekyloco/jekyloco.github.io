@@ -1,5 +1,5 @@
 ---
->title: 'Eden (feat. Cordae, DJ Jazzy Jeff)'
+title: 'Eden (feat. Cordae, DJ Jazzy Jeff)'
 pubDate: '2026-05-08'
 kind: 'Lyric'
 source: 'Gen'
@@ -11,6 +11,7 @@ tags:
   - Songs
 note: '優しい!!'
 ---
+
 ***憂鬱に積もった***
 
 > 忧郁不断堆积
