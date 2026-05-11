@@ -10,124 +10,88 @@ tags:
   - Khalil Fong
   - Songs
 ---
-I wrote this song
+耳朵借我 这几分钟
 
-It's not too long
+这首歌会替我说
 
-Cause i've been thinking about you
+你在心中 怎么形容
 
-I wrote this song
+像荒漠开出花朵
 
-Maybe I'm wrong
+原谅我的指头在震抖
 
-To be  caught up about you
+是我把黑键当你的手
 
-I don't know what you think about me
+如果你心里也能协奏
 
-Maybe you think nothing at all
+请你对我轻轻点头
 
-But maybe you could just lie to me
+这是为你写的歌 充满忐忑
 
-We could be in love you see
+像生命所有转折 要你认可
 
-Oh It's a singalong song
+只等你来唱和
 
-That's not too long
+我会在你左右
 
-It's when I think about you
+Cause baby I wrote this I wrote this for you
 
-That I hear song
+每次斟酌 每个段落
 
-And you can sing along
+是你应得的温柔
 
-Maybe if you want to
+每小节的 心跳触动
 
-Cause baby i wrote this
+想传到你的胸口
 
-I wrote this for you
+也没有一时澎湃悸动
 
-I wrote this song
+却能在深秋细水长流
 
-It's not too long
+这世界什么都会陈旧
 
-Cause I'm the one who loves you
+除了你回头的微笑
 
-I wrote this song
+这是为你写的歌 充满忐忑
 
-This can't be wrong
+像生命所有转折 要你认可
 
-I don't want to smile without you
+只等你来唱和
 
-I just want to make you happy
+我会在你左右
 
-Maybe you want nothing at all
+Cause baby I wrote this I wrote this for you
 
-And How I wish that
+每一天我愿像银河
 
-You're meant to be
+陪伴着夜空
 
-Forever and a day with me
+是否你也愿身边永远有我
 
-It's a singalong song
+失去记忆一样哼着
 
-That's not too long
+让和弦在我们心口流动
 
-It's when I Think about you
+直到两双手都弹皱了
 
-Then I hear songs
+我还依旧为你写歌
 
-And you can sing along
+这是为你写的歌 充满忐忑
 
-Maybe if you want to
+像生命所有转折 要你认可
 
-Cause baby i wrote this
+只等你来唱和
 
-I wrote this for you
+我会在你左右
 
-In every way you mean more to me
+Cause baby I wrote this I wrote this for you
 
-Than you'll ever know
+Oh it's a singalong song that's not too long
 
-Girl I do my best to show
+It's when I think about you then I hear songs
 
-These words are true
+And you can singalong maybe if you want to
 
-And if you like to make a song
+Cause baby I wrote this I wrote this for you
 
-And be a perfect harmony with me
-
-I find the greatest words to sing
-
-So we could write our own romantic thing
-
-It's a singalong song
-
-That's not too long
-
-It's when I think about you
-
-Then I hear song
-
-And you can sing along
-
-Baby if you want to
-
-Cause baby i wrote this
-
-I wrote this for you
-
-It's Just a singalong song
-
-That's not too long
-
-It's when I think about you
-
-Then I hear song
-
-And you can sing along
-
-Maybe if you want to
-
-Cause baby i wrote this
-
-I wrote this for you
+Cause baby I wrote this I wrote this for you

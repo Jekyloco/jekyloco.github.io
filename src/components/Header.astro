@@ -15,14 +15,14 @@ const musicPreload = musicConfig.preload ?? 'auto';
 const musicLrc = musicConfig.lrc ?? '';
 const musicLrcEncoding = musicConfig.lrcEncoding ?? 'utf-8';
 const musicLang = musicConfig.lang ?? 'ja';
-const mediaDir = join(process.cwd(), 'public', 'media');
+const mediaDir = join(process.cwd(), 'public', 'music_player');
 const mediaFiles = existsSync(mediaDir) ? readdirSync(mediaDir) : [];
 const lrcFiles = new Map(
 	mediaFiles
 		.filter((file) => extname(file).toLowerCase() === '.lrc')
 		.map((file) => [basename(file, extname(file)).toLowerCase(), file]),
 );
-const mediaPath = (file: string) => `/media/${encodeURIComponent(file)}`;
+const mediaPath = (file: string) => `/music_player/${encodeURIComponent(file)}`;
 const scannedPlaylist = mediaFiles
 	.filter((file) => ['.mp3', '.flac'].includes(extname(file).toLowerCase()))
 	.sort((a, b) => a.localeCompare(b))
