@@ -31,6 +31,12 @@ export const SITE_CONFIG = {
 		showOnLoad: false,
 		loop: true,
 		preload: 'auto',
+		coverAliases: {
+			'01 Fake': '01 Fake.jpg',
+			'03 Star': '03 Star.jpg',
+			'15 異世界混合大舞踏会': '15.jpg',
+			'01 創造': '01.jpg',
+		},
 	},
 	backgroundImage: BackgroundImage.src,
 	markdown: {

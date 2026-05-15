@@ -15,6 +15,7 @@ const musicPreload = musicConfig.preload ?? 'auto';
 const musicLrc = musicConfig.lrc ?? '';
 const musicLrcEncoding = musicConfig.lrcEncoding ?? 'utf-8';
 const musicLang = musicConfig.lang ?? 'ja';
+const musicCoverAliases = musicConfig.coverAliases ?? {};
 const mediaDir = join(process.cwd(), 'public', 'music_player');
 const mediaFiles = existsSync(mediaDir) ? readdirSync(mediaDir) : [];
 const lrcFiles = new Map(
@@ -22,23 +23,40 @@ const lrcFiles = new Map(
 		.filter((file) => extname(file).toLowerCase() === '.lrc')
 		.map((file) => [basename(file, extname(file)).toLowerCase(), file]),
 );
+const coverFiles = new Map(
+	mediaFiles
+		.filter((file) => ['.jpg', '.jpeg', '.png', '.webp'].includes(extname(file).toLowerCase()))
+		.map((file) => [basename(file, extname(file)).toLowerCase(), file]),
+);
 const mediaPath = (file: string) => `/music_player/${encodeURIComponent(file)}`;
+const resolveCoverFile = (name: string) => {
+	const alias = musicCoverAliases[name as keyof typeof musicCoverAliases];
+	if (typeof alias === 'string') {
+		const directMatch = mediaFiles.find((file) => file.toLowerCase() === alias.toLowerCase());
+		if (directMatch) return directMatch;
+		return coverFiles.get(alias.replace(/\.[^.]+$/, '').toLowerCase()) ?? '';
+	}
+	return coverFiles.get(name.toLowerCase()) ?? '';
+};
 const scannedPlaylist = mediaFiles
 	.filter((file) => ['.mp3', '.flac'].includes(extname(file).toLowerCase()))
 	.sort((a, b) => a.localeCompare(b))
 	.map((file) => {
 		const name = basename(file, extname(file));
 		const lrcFile = lrcFiles.get(name.toLowerCase());
+		const coverFile = resolveCoverFile(name);
 		return {
 			title: name,
 			src: mediaPath(file),
 			lrc: lrcFile ? mediaPath(lrcFile) : '',
+			cover: coverFile ? mediaPath(coverFile) : '',
 		};
 	});
 const fallbackTrack = {
 	title: 'Music',
 	src: musicConfig.src,
 	lrc: musicLrc,
+	cover: '',
 };
 const musicPlaylist = musicRandom && scannedPlaylist.length ? scannedPlaylist : [fallbackTrack];
 const initialTrack = musicPlaylist[0] ?? fallbackTrack;
@@ -185,7 +203,8 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 	</div>
 </aside>
 <button class="music-player-show" id="music-player-show" type="button" aria-label="Show music player" hidden>
-	Open player
+	<img class="music-player-show-cover" id="music-player-show-cover" alt="" loading="lazy" decoding="async" hidden />
+	<span class="music-player-show-label" id="music-player-show-label">Open player</span>
 </button>
 
 <script is:inline data-astro-rerun define:vars={{ musicAutoplay, musicLrcEncoding, musicLang, musicPlaylist, musicRandom, musicShowOnLoad }}>
@@ -248,6 +267,8 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 		const player = document.querySelector('.music-player');
 		const hidePlayerButton = document.getElementById('music-player-hide');
 		const showPlayerButton = document.getElementById('music-player-show');
+		const showPlayerCover = document.getElementById('music-player-show-cover');
+		const showPlayerLabel = document.getElementById('music-player-show-label');
 		if (!(audio instanceof HTMLAudioElement)) return;
 		if (!(player instanceof HTMLElement)) return;
 		if (lyric) lyric.setAttribute('lang', musicLang);
@@ -315,6 +336,22 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 			if (progress instanceof HTMLInputElement) progress.value = '0';
 			if (currentTime) currentTime.textContent = '0:00';
 			if (duration) duration.textContent = '0:00';
+			if (showPlayerButton instanceof HTMLButtonElement) {
+				showPlayerButton.title = getTrackName(track);
+			}
+			if (showPlayerCover instanceof HTMLImageElement) {
+				if (track.cover) {
+					showPlayerCover.src = track.cover;
+					showPlayerCover.hidden = false;
+					if (showPlayerLabel instanceof HTMLElement) showPlayerLabel.hidden = true;
+					showPlayerButton?.classList.add('has-cover');
+				} else {
+					showPlayerCover.removeAttribute('src');
+					showPlayerCover.hidden = true;
+					if (showPlayerLabel instanceof HTMLElement) showPlayerLabel.hidden = false;
+					showPlayerButton?.classList.remove('has-cover');
+				}
+			}
 			if (audio.getAttribute('src') !== track.src) {
 				audio.src = track.src;
 				audio.load();
@@ -328,6 +365,9 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 				button.dataset.playing = String(isPlaying);
 				button.setAttribute('aria-pressed', String(isPlaying));
 				button.setAttribute('aria-label', isPlaying ? 'Pause background music' : 'Play background music');
+			}
+			if (showPlayerButton instanceof HTMLButtonElement) {
+				showPlayerButton.dataset.playing = String(isPlaying);
 			}
 		};
 
@@ -698,6 +738,12 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 		right: var(--page-gutter);
 		bottom: 0.9rem;
 		z-index: 31;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: auto;
+		min-width: 44px;
+		height: 44px;
 		border: 1px solid rgb(var(--border));
 		border-radius: 999px;
 		padding: 0.42rem 0.9rem;
@@ -706,12 +752,43 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 		font-size: 0.86rem;
 		font-weight: 600;
 		cursor: pointer;
-		transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+		overflow: hidden;
+		transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+	}
+	.music-player-show.has-cover {
+		width: 54px;
+		height: 54px;
+		min-width: 54px;
+		padding: 0;
+		border-radius: 50%;
+		background: rgb(var(--card));
+		box-shadow: 0 8px 28px rgba(var(--black), 0.16);
+	}
+	.music-player-show-cover {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		border-radius: 50%;
+		transform-origin: center;
+	}
+	.music-player-show-cover[hidden],
+	.music-player-show-label[hidden] {
+		display: none;
+	}
+	.music-player-show.has-cover[data-playing='true'] .music-player-show-cover {
+		animation: music-cover-spin 8s linear infinite;
 	}
 	.music-player-show:hover {
 		background: rgba(var(--accent-rgb), 0.12);
 		border-color: rgba(var(--border), 0.8);
 		box-shadow: var(--shadow);
+		transform: translateY(-1px);
+	}
+	@keyframes music-cover-spin {
+		to {
+			transform: rotate(360deg);
+		}
 	}
 	.music-player[data-hidden='true'] {
 		transform: translateY(calc(100% + 1.2rem));

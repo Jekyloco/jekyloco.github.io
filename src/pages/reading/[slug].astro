@@ -88,14 +88,13 @@ if (shouldShowPlayer && lrcFile) {
 									<p class="song-artist">{entry.data.author || entry.data.source}</p>
 								</div>
 							</div>
-							<div class="lyrics-container" id="lyrics-container">
-								<div id="lyrics-content"></div>
-							</div>
-
 							<div class="progress-container">
 								<span id="current-time">0:00</span>
 								<input type="range" id="progress-bar" min="0" max="100" value="0" />
 								<span id="duration">0:00</span>
+							</div>
+							<div class="lyrics-container" id="lyrics-container">
+								<div id="lyrics-content"></div>
 							</div>
 						</div>
 
@@ -741,6 +740,19 @@ if (shouldShowPlayer && lrcFile) {
 				.reading-related > div {
 					grid-template-columns: 1fr;
 				}
+
+				:global(#lyrics-content .lyric-line) {
+				padding: 0;
+				margin: 0.35rem 0;
+				border-radius: 8px;
+				font-size: 1rem;
+				line-height: 1.8;
+				text-align: center;
+				color: rgba(255, 255, 255, 0.45);
+				transition: all 0.2s ease;
+				white-space: pre-wrap;
+			}
+
 			}
 		</style>
 	</body>
