@@ -12,6 +12,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 *.log
+.astro-dev*.log
+.codex-dev.log
 
 
 # environment variables

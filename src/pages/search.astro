@@ -73,21 +73,15 @@ const normalizeSearchText = (text?: string) => (text ?? '').replace(/\s+/g, ' ')
 
 		<script is:inline data-astro-rerun>
 			(() => {
-				if (window.__searchPageCleanup) window.__searchPageCleanup();
-
-				const cleanups = [];
-				const on = (target, event, handler, options) => {
-					target.addEventListener(event, handler, options);
-					cleanups.push(() => target.removeEventListener(event, handler, options));
-				};
+				const tools = window.__pageStateTools;
+				if (!tools) return;
+				const page = tools.createCleanupContext('__searchPageCleanup');
+				const { on } = page;
 
 				const input = document.getElementById('search-input');
 				const subtitle = document.getElementById('search-subtitle');
 				const list = document.getElementById('search-results');
 				if (!(input instanceof HTMLInputElement) || !subtitle || !list) return;
-				window.__searchPageCleanup = () => {
-					for (const cleanup of cleanups) cleanup();
-				};
 
 				const cards = Array.from(list.querySelectorAll('a[data-title]'));
 				const params = new URLSearchParams(window.location.search);
@@ -111,22 +105,10 @@ const normalizeSearchText = (text?: string) => (text ?? '').replace(/\s+/g, ' ')
 				};
 
 				const syncUrl = () => {
-					const q = input.value.trim();
-					const next = new URL(window.location.href);
-					if (q) next.searchParams.set('q', q);
-					else next.searchParams.delete('q');
-					window.history.replaceState({}, '', next);
+					tools.updateQueryParams({ q: input.value.trim() }, { replace: true });
 				};
 
-				let composing = false;
-				on(input, 'compositionstart', () => (composing = true));
-				on(input, 'compositionend', () => {
-					composing = false;
-					syncUrl();
-					apply();
-				});
-				on(input, 'input', () => {
-					if (composing) return;
+				tools.bindComposingInput(page, input, () => {
 					syncUrl();
 					apply();
 				});

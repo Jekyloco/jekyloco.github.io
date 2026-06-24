@@ -192,13 +192,10 @@ const formatMachineDate = (date: Date) => {
 
 		<script is:inline data-astro-rerun>
 			(() => {
-				if (window.__archivePageCleanup) window.__archivePageCleanup();
-
-				const cleanups = [];
-				const on = (target, event, handler, options) => {
-					target.addEventListener(event, handler, options);
-					cleanups.push(() => target.removeEventListener(event, handler, options));
-				};
+				const tools = window.__pageStateTools;
+				if (!tools) return;
+				const page = tools.createCleanupContext('__archivePageCleanup');
+				const { on } = page;
 
 				const entries = Array.from(document.querySelectorAll('[data-archive-entry]'));
 				const groups = Array.from(document.querySelectorAll('[data-year-group]'));
@@ -209,17 +206,8 @@ const formatMachineDate = (date: Date) => {
 				const allLinks = Array.from(document.querySelectorAll('[data-archive-tag-link],[data-archive-month-link]'));
 				const total = entries.length;
 
-				window.__archivePageCleanup = () => {
-					for (const cleanup of cleanups) cleanup();
-				};
-
 				const setParams = (next) => {
-					const url = new URL(window.location.href);
-					for (const [key, value] of Object.entries(next)) {
-						if (!value) url.searchParams.delete(key);
-						else url.searchParams.set(key, String(value));
-					}
-					window.history.pushState({}, '', url);
+					tools.updateQueryParams(next);
 					apply();
 				};
 

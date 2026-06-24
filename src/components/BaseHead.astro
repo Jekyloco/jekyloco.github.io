@@ -107,6 +107,70 @@ const iconLinks = configuredIcons.length
 		document.addEventListener('astro:after-swap', applyTheme);
 	})();
 </script>
+<script is:inline>
+	(() => {
+		if (window.__pageStateTools) return;
+
+		const createCleanupContext = (cleanupKey) => {
+			const previousCleanup = window[cleanupKey];
+			if (typeof previousCleanup === 'function') previousCleanup();
+
+			const cleanups = [];
+			const on = (target, event, handler, options) => {
+				target.addEventListener(event, handler, options);
+				cleanups.push(() => target.removeEventListener(event, handler, options));
+			};
+			const register = (extraCleanup) => {
+				window[cleanupKey] = () => {
+					for (const cleanup of cleanups) cleanup();
+					if (typeof extraCleanup === 'function') extraCleanup();
+				};
+			};
+
+			register();
+			return { on, register };
+		};
+
+		const updateQueryParams = (nextParams, options = {}) => {
+			const url = new URL(window.location.href);
+			const clearKeys = Array.isArray(options.clearKeys) ? options.clearKeys : [];
+			const removeKeys = Array.isArray(options.removeKeys) ? options.removeKeys : [];
+			const resetPageKey = typeof options.resetPageKey === 'string' ? options.resetPageKey : '';
+			const replace = options.replace === true;
+
+			for (const key of clearKeys) url.searchParams.delete(key);
+			for (const key of removeKeys) url.searchParams.delete(key);
+			for (const [key, value] of Object.entries(nextParams ?? {})) {
+				if (value === null || value === undefined || value === '') url.searchParams.delete(key);
+				else url.searchParams.set(key, String(value));
+			}
+			if (resetPageKey) url.searchParams.delete(resetPageKey);
+			window.history[replace ? 'replaceState' : 'pushState']({}, '', url);
+		};
+
+		const bindComposingInput = (context, input, onChange) => {
+			if (!(input instanceof HTMLInputElement) || typeof onChange !== 'function') return;
+			let composing = false;
+			context.on(input, 'compositionstart', () => {
+				composing = true;
+			});
+			context.on(input, 'compositionend', () => {
+				composing = false;
+				onChange(input.value.trim());
+			});
+			context.on(input, 'input', () => {
+				if (composing) return;
+				onChange(input.value.trim());
+			});
+		};
+
+		window.__pageStateTools = {
+			createCleanupContext,
+			updateQueryParams,
+			bindComposingInput,
+		};
+	})();
+</script>
 {injectedCss && <style set:html={injectedCss} />}
 {
 	iconLinks.map((icon) => (

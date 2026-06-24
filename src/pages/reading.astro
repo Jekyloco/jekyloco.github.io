@@ -119,13 +119,10 @@ const recentAuthor = {
 
 		<script is:inline data-astro-rerun>
 			(() => {
-				if (window.__readingPageCleanup) window.__readingPageCleanup();
-
-				const cleanups = [];
-				const on = (target, event, handler, options) => {
-					target.addEventListener(event, handler, options);
-					cleanups.push(() => target.removeEventListener(event, handler, options));
-				};
+				const tools = window.__pageStateTools;
+				if (!tools) return;
+				const page = tools.createCleanupContext('__readingPageCleanup');
+				const { on } = page;
 
 				const entries = Array.from(document.querySelectorAll('[data-reading-entry]'));
 				const links = Array.from(document.querySelectorAll('[data-reading-kind],[data-reading-tag],[data-reading-all]'));
@@ -137,17 +134,8 @@ const recentAuthor = {
 				const pageSize = 6;
 				let currentPage = 1;
 
-				window.__readingPageCleanup = () => {
-					for (const cleanup of cleanups) cleanup();
-				};
-
 				const setParams = (next) => {
-					const url = new URL(window.location.href);
-					for (const key of ['kind', 'tag']) url.searchParams.delete(key);
-					for (const [key, value] of Object.entries(next)) {
-						if (value) url.searchParams.set(key, String(value));
-					}
-					window.history.pushState({}, '', url);
+					tools.updateQueryParams(next, { clearKeys: ['kind', 'tag'] });
 					currentPage = 1;
 					apply();
 				};

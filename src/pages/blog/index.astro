@@ -195,20 +195,14 @@ const archives: ArchiveItem[] = [...archiveCounts.entries()]
 
 		<script is:inline data-astro-rerun>
 			(() => {
-				if (window.__postsPageCleanup) window.__postsPageCleanup();
-
-				const cleanups = [];
-				const on = (target, event, handler, options) => {
-					target.addEventListener(event, handler, options);
-					cleanups.push(() => target.removeEventListener(event, handler, options));
-				};
+				const tools = window.__pageStateTools;
+				if (!tools) return;
+				const page = tools.createCleanupContext('__postsPageCleanup');
+				const { on } = page;
 
 				const pageSubtitle = document.getElementById('page-subtitle');
 				const list = document.getElementById('post-list');
 				if (!pageSubtitle || !list) return;
-				window.__postsPageCleanup = () => {
-					for (const cleanup of cleanups) cleanup();
-				};
 
 				const pagination = document.getElementById('pagination');
 				const prev = document.getElementById('prev-page');
@@ -216,7 +210,7 @@ const archives: ArchiveItem[] = [...archiveCounts.entries()]
 
 				const searchInput = document.getElementById('blog-search');
 				const cards = Array.from(list.querySelectorAll('[data-title]'));
-				const pageSize = 5;
+				const pageSize = 4;
 
 				const pageHref = (pageNumber) => {
 					const url = new URL(window.location.href);
@@ -303,26 +297,13 @@ const archives: ArchiveItem[] = [...archiveCounts.entries()]
 				};
 
 				const setParams = (next) => {
-					const url = new URL(window.location.href);
-					for (const [k, v] of Object.entries(next)) {
-						if (v === null || v === undefined || v === '') url.searchParams.delete(k);
-						else url.searchParams.set(k, String(v));
-					}
-					url.searchParams.delete('page');
-					window.history.pushState({}, '', url);
+					tools.updateQueryParams(next, { resetPageKey: 'page' });
 					apply();
 				};
 
 				if (searchInput instanceof HTMLInputElement) {
-					let composing = false;
-					on(searchInput, 'compositionstart', () => (composing = true));
-					on(searchInput, 'compositionend', () => {
-						composing = false;
-						setParams({ q: searchInput.value.trim() });
-					});
-					on(searchInput, 'input', () => {
-						if (composing) return;
-						setParams({ q: searchInput.value.trim() });
+					tools.bindComposingInput(page, searchInput, (value) => {
+						setParams({ q: value });
 					});
 				}
 
