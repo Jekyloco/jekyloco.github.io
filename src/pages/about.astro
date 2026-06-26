@@ -15,138 +15,125 @@ import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
 	<body>
 		<Header />
 		<main class="about-container">
-		    <aside class="left-col">
-		        <h1 class="page-title">{SITE_TITLE}</h1>
-		        <p class="page-subtitle" style = "margin-top: 30px">{SITE_DESCRIPTION}</p>
-		        <div class="about-me-image" style = "margin-top: 3em">
-					<img src={AboutImage.src}
-						alt=""
-						loading="lazy"
-                        style="width: 100%; height: auto;"/>
+			<aside class="left-col">
+				<h1 class="page-title">{SITE_TITLE}</h1>
+				<p class="page-subtitle" style="margin-top: 30px">{SITE_DESCRIPTION}</p>
+				<div class="about-me-image" style="margin-top: 3em">
+					<img src={AboutImage.src} alt="" loading="lazy" style="width: 100%; height: auto;" />
 				</div>
-		    </aside>
+			</aside>
 
-		    <section class="right-col">
-                <h1 class="page-title" style="padding-top: 5px;">About me</h1>
-                <div class="post-card-meta"> May 5, 2026 </div>
-		        <div class="card content-card">
-                    <hr>
-                    <p>这个博客是做什么的呢？这个问题自己也说不太清楚。但在此之前已经搭建过两个博客了，一个是通过HEXO，另一个是通过WordPress，当然啦，都没成气候。究其原因嘛，一半是自己不上心，另一半是觉得维护起来比较麻烦。目前这个博客受知乎网友启发，通过Codex，Cusor 的免费额度以及Trae的Lite Plan使用Astro框架自定义搭建起来的，自己也就写了写需求和做了一点界面的优化。感觉使用和维护起来都比较方便，便决定尝试好好运维起来。</p>
-                    <p>为什么突然又捡起来这劳什子呢？一方面看到很多别人的博客，心里实在是羡慕得不行。另一方面为自己找到一个宣泄的出口，用来记录自己。之前通过ICloud的Notes其实也记录下很多东西，但如今觉得在互联网中稍稍留下一点痕迹也没有什么关系。即使这个博客会像旅行者号一样孤独地在宇宙中遨游却得不到任何的回应，但这也并不重要，重要的是我如何去对待他。</p>
-                    <p>作为一个在互联网夹缝中生存的打工人，算来也迈入社会快三年了。当然，我对现在的工作并没有什么强烈的不满，毕竟当前还得仰赖辛苦工作带来的些许俸禄。但当我脱离被社会框架勾勒的成长轨迹之后，当我完全完全人格独立地站在人生的旷野之上时，我确实不知道该走向何方，迷茫得不知所措。那些在以往岁月中为我带来快乐的动漫，书籍，游戏等很多行为都失去了很多意味，有时再难领略以往那种快乐。曾经那些充满很多想象与理想的美好未来如今看来更加遥不可及。所以，我想这是这个博客诞生的根本原因。不仅仅是记录，更是一种对话。为自己干涸的灵魂带来些许的希望与激情，然后在生活与工作上产生动力去把一些小事做好。这便是对自己以及这个博客的期许。</p>
-                    <p>“悟已往之不谏，知来者之可追”——这句令人又爱又恨的句子，献给About me。</p><hr></br>
-                    	<img
-						src={AboutImage02.src}
-						alt=""
-						loading="lazy"
-                        style="width: 100%; height: auto;"/>
-                </br>
-		        </div>
-		    </section>
+			<section class="right-col">
+				<h1 class="page-title" style="padding-top: 5px;">About me</h1>
+				<div class="post-card-meta">May 5, 2026</div>
+				<div class="card content-card">
+					<hr />
+					<p>这个博客是做什么的呢？这个问题自己也说不太清楚。但在此之前已经搭建过两个博客了，一个是通过 HEXO，另一个是通过 WordPress，当然啦，都没成气候。究其原因嘛，一半是自己不上心，另一半是觉得维护起来比较麻烦。</p>
+					<p>目前这个博客受知乎网友启发，通过 Codex、Cursor 的免费额度以及 Trae 的 Lite Plan 使用 Astro 框架自定义搭建起来的。自己也就写了写需求和做了一点界面的优化，感觉使用和维护起来都比较方便，便决定尝试好好运维起来。</p>
+					<p>为什么突然又捡起来这劳什子呢？一方面看到很多别人的博客，心里实在是羡慕得不行。另一方面是想为自己找到一个宣泄的出口，用来记录自己。之前通过 iCloud 的 Notes 其实也记录下很多东西，但如今觉得在互联网中稍稍留下一点痕迹也没有什么关系。</p>
+					<p>即使这个博客会像旅行者号一样孤独地在宇宙中遨游，却得不到任何回应，但这也并不重要，重要的是我如何去对待它。</p>
+					<p>作为一个在互联网夹缝中生存的打工人，算来也迈入社会快三年了。当然，我对现在的工作并没有什么强烈的不满，毕竟当前还得仰赖辛苦工作带来的些许俸禄。但当我脱离被社会框架勾勒的成长轨迹之后，当我完全独立地站在人生的旷野之上时，我确实不知道该走向何方，迷茫得不知所措。</p>
+					<p>那些在以往岁月中为我带来快乐的动漫、书籍、游戏等很多行为都失去了很多意味，有时再难领略以往那种快乐。曾经那些充满想象与理想的美好未来，如今看来更加遥不可及。所以，我想这是这个博客诞生的根本原因。不仅仅是记录，更是一种对话。</p>
+					<p>为自己干涸的灵魂带来一些希望与激情，然后在生活与工作上产生动力去把一些小事做好。这便是对自己以及这个博客的期许。</p>
+					<p>“悟已往之不谏，知来者之可追”——这句话献给 About me。</p>
+					<hr />
+					<img src={AboutImage02.src} alt="" loading="lazy" style="width: 100%; height: auto;" />
+				</div>
+			</section>
 		</main>
 		<Footer />
 	</body>
 
 	<style>
-    /* 1. 基础布局配置 */
-    body {
-        display: flex;
-        flex-direction: column;
-        /* PC端锁定高度为视口高度，防止整体滚动 */
-        height: 100vh; 
-        margin: 0;
-        overflow: hidden;
-    }
+		body {
+			display: flex;
+			flex-direction: column;
+			height: 100vh;
+			margin: 0;
+			overflow: hidden;
+		}
 
-    .about-container {
-        display: grid;
-        grid-template-columns: 1fr 2fr;
-        gap: 2rem;
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 2rem;
-        flex: 1; /* 自动占据剩余空间 */
-        min-height: 0; /* 允许子元素内容溢出处理 */
-    }
+		.about-container {
+			display: grid;
+			grid-template-columns: 1fr 2fr;
+			gap: 2rem;
+			max-width: 1200px;
+			margin: 0 auto;
+			padding: 2rem;
+			flex: 1;
+			min-height: 0;
+		}
 
-    .left-col {
-        display: flex;
-        flex-direction: column;
-        border-right: 2px solid rgba(var(--gray), 0.2);
-        padding-right: 2rem;
-    }
+		.left-col {
+			display: flex;
+			flex-direction: column;
+			border-right: 2px solid rgba(var(--gray), 0.2);
+			padding-right: 2rem;
+		}
 
-    /* 2. 右侧栏：独立滚动并隐藏滚动条 */
-    .right-col {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-        overflow-y: auto; /* 必须保留，否则无法滚动 */
-        scroll-behavior: smooth;
+		.right-col {
+			display: flex;
+			flex-direction: column;
+			gap: 1.5rem;
+			overflow-y: auto;
+			scroll-behavior: smooth;
+			scrollbar-width: none;
+			-ms-overflow-style: none;
+		}
 
-        /* --- 隐藏滚动条核心代码 --- */
-        /* Firefox */
-        scrollbar-width: none; 
-        /* IE and Edge */
-        -ms-overflow-style: none; 
-    }
+		.right-col::-webkit-scrollbar {
+			display: none;
+		}
 
-    /* Chrome, Safari and Opera (WebKit内核) */
-    .right-col::-webkit-scrollbar {
-        display: none;
-    }
+		.about-me-image img {
+			max-width: 100%;
+			height: auto;
+			border-radius: 8px;
+		}
 
-    .about-me-image img {
-        max-width: 100%;
-        height: auto;
-        border-radius: 8px;
-    }
+		.card {
+			padding: 1.5rem;
+			background: rgba(var(--gray-light), 0.1);
+			border-radius: 12px;
+			border: 1px solid rgba(var(--gray), 0.2);
+			flex-shrink: 0;
+		}
 
-    .card {
-        padding: 1.5rem;
-        background: rgba(var(--gray-light), 0.1);
-        border-radius: 12px;
-        border: 1px solid rgba(var(--gray), 0.2);
-        flex-shrink: 0; 
-    }
+		@media (max-width: 768px) {
+			body {
+				max-width: var(--container);
+				height: auto;
+				overflow: visible;
+			}
 
-    /* 3. 移动端适配：恢复自然滚动 */
-    @media (max-width: 768px) {
-        body {
-			max-width: var(--container);
-            height: auto;
-            overflow: visible; 
-        }
+			.about-container {
+				display: block;
+				height: auto;
+				flex: none;
+				padding: 2rem 1rem;
+			}
 
-        .about-container {
-            display: block; 
-            height: auto;
-            flex: none;
-            padding: 2rem 1rem;
-        }
+			.left-col {
+				border-right: none;
+				border-bottom: 1px solid rgba(var(--gray), 0.2);
+				padding-right: 0;
+				padding-bottom: 2rem;
+				margin-bottom: 2rem;
+			}
 
-        .left-col {
-            border-right: none;
-            border-bottom: 1px solid rgba(var(--gray), 0.2);
-            padding-right: 0;
-            padding-bottom: 2rem;
-            margin-bottom: 2rem;
-        }
+			.right-col {
+				height: auto;
+				overflow-y: visible;
+			}
 
-        .right-col {
-            height: auto;
-            overflow-y: visible; /* 手机端恢复可见滚动 */
-        }
-        
-        /* 如果手机端也想隐藏，可以删掉下面这行 */
-        .right-col::-webkit-scrollbar {
-            display: block; 
-        }
+			.right-col::-webkit-scrollbar {
+				display: block;
+			}
 
-        .card {
-        width: 100%;
-        padding: 0.5rem
-        }
-    }
+			.card {
+				width: 100%;
+				padding: 0.5rem;
+			}
+		}
 	</style>
 </html>

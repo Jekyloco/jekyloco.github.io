@@ -1,0 +1,87 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import MagazineHeader from '../components/magazine/MagazineHeader.astro';
+import MagazineFooter from '../components/magazine/MagazineFooter.astro';
+
+interface Props {
+	title: string;
+	description: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={title} description={description} />
+	</head>
+	<body class="magazine-body">
+		<div class="theme-magazine">
+			<MagazineHeader />
+			<main class="magazine-main">
+				<slot />
+			</main>
+			<MagazineFooter />
+		</div>
+	</body>
+</html>
+
+<style>
+	:global(body.magazine-body) {
+		margin: 0;
+		min-height: 100vh;
+		min-height: 100dvh;
+		background:
+			radial-gradient(circle at top left, rgba(27, 77, 62, 0.09), transparent 30%),
+			radial-gradient(circle at 85% 10%, rgba(230, 126, 34, 0.07), transparent 22%),
+			#efe9dc;
+		color: var(--text-ink, #1a1a1a);
+	}
+
+	.theme-magazine {
+		--bg-paper: #efe9dc;
+		--text-ink: #1a1a1a;
+		--color-accent-green: #1b4d3e;
+		--color-accent-orange: #e67e22;
+		--border-ink: rgba(26, 26, 26, 0.18);
+		--black: 26, 26, 26;
+		--gray-dark: 42, 38, 33;
+		--gray: 92, 84, 75;
+		--gray-light: 227, 218, 203;
+		--accent-rgb: 27, 77, 62;
+		--accent: rgb(var(--accent-rgb));
+		--accent-dark: rgb(var(--accent-rgb));
+		--link: #1b4d3e;
+		--link-hover: #2f6b56;
+		--bg: 239, 233, 220;
+		--card: 247, 242, 232;
+		--border: 197, 186, 169;
+		--shadow: 0 1px 2px rgba(20, 15, 10, 0.06), 0 18px 36px rgba(20, 15, 10, 0.08);
+		--magazine-gutter: clamp(1.5rem, 4vw, 3.5rem);
+		--magazine-mono: ui-monospace, 'Cascadia Code', 'Courier New', monospace;
+		--magazine-title-size: clamp(2.5rem, 6vw, 4.75rem);
+		--magazine-lead-size: clamp(1.2rem, 2.4vw, 1.85rem);
+		--magazine-body-size: clamp(1.05rem, 1.35vw, 1.28rem);
+		--magazine-label-size: clamp(0.68rem, 1vw, 0.78rem);
+
+		width: 100%;
+		min-height: 100vh;
+		min-height: 100dvh;
+		display: flex;
+		flex-direction: column;
+		background: var(--bg-paper);
+		color: var(--text-ink);
+		font-family: var(--font-atkinson), Georgia, 'Times New Roman', serif;
+		font-size: var(--magazine-body-size);
+		line-height: 1.65;
+	}
+
+	.magazine-main {
+		flex: 1;
+		width: 100%;
+		max-width: none;
+		margin: 0;
+		padding: 0 var(--magazine-gutter) clamp(3rem, 6vw, 5rem);
+	}
+</style>

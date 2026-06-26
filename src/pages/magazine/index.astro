@@ -1,0 +1,316 @@
+---
+import { getCollection } from 'astro:content';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
+import { countPostBodyCharacters, formatPostBodyCharCount } from '../../utils/postBodyStats';
+import { resolvePostDescription } from '../../utils/postDescription';
+import MagazineLayout from '../../layouts/MagazineLayout.astro';
+import FormattedDate from '../../components/FormattedDate.astro';
+
+const posts = (await getCollection('blog')).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+
+const normalizeSearchText = (text?: string) => (text ?? '').replace(/\s+/g, ' ').trim();
+
+const tagCounts = new Map<string, number>();
+for (const post of posts) {
+	for (const tag of post.data.tags ?? []) {
+		tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+	}
+}
+const allTags = [...tagCounts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+
+type ArchiveItem = { ym: string; year: number; month: number; count: number };
+const archiveCounts = new Map<string, number>();
+for (const post of posts) {
+	const year = post.data.pubDate.getFullYear();
+	const month = post.data.pubDate.getMonth() + 1;
+	const ym = `${year}-${String(month).padStart(2, '0')}`;
+	archiveCounts.set(ym, (archiveCounts.get(ym) ?? 0) + 1);
+}
+const archives: ArchiveItem[] = [...archiveCounts.entries()]
+	.map(([ym, count]) => {
+		const [year, month] = ym.split('-').map((n) => Number.parseInt(n, 10));
+		return { ym, year, month, count };
+	})
+	.sort((a, b) => b.ym.localeCompare(a.ym));
+
+const latestPosts = posts.slice(0, 3);
+---
+
+<MagazineLayout title={SITE_TITLE} description={SITE_DESCRIPTION}>
+	<main>
+		<div class="page-header magazine-page-header">
+			<div>
+				<h1 class="page-title">Posts</h1>
+				<p class="page-subtitle" id="page-subtitle">Loading...</p>
+			</div>
+			<a class="badge magazine-head-badge" href="/magazine/archive">Archive</a>
+		</div>
+
+		<section class="split-layout magazine-layout">
+			<div>
+				<div class="post-list" id="post-list">
+					{
+						posts.map((post) => {
+							const charCount = countPostBodyCharacters(post.body);
+							const tags = post.data.tags ?? [];
+							const year = post.data.pubDate.getFullYear();
+							const month = post.data.pubDate.getMonth() + 1;
+							const ym = `${year}-${String(month).padStart(2, '0')}`;
+							const cardDescription = resolvePostDescription(
+								post.data.description,
+								post.body,
+								post.data.title,
+							);
+							return (
+								<article
+									class="card card-hover post-card magazine-post-card"
+									data-title={post.data.title}
+									data-description={cardDescription}
+									data-tags={tags.join(',')}
+									data-body={normalizeSearchText(post.body)}
+									data-ym={ym}
+								>
+									<div class="post-card-main">
+										<div class="post-card-meta">
+											<span>
+												<FormattedDate date={post.data.pubDate} />
+											</span>
+											<span>{formatPostBodyCharCount(charCount)}</span>
+											<span>{post.data.lang}</span>
+										</div>
+										<h2 class="post-card-title">
+											<a href={`/blog/${post.id}/`}>{post.data.title}</a>
+										</h2>
+										<p class="post-card-desc">{cardDescription}</p>
+										{tags.length > 0 && (
+											<div class="tag-cloud" aria-label="Tags">
+												{tags.slice(0, 3).map((tag) => (
+													<a class="badge" href={`/magazine/archive?tag=${encodeURIComponent(tag)}`} data-filter-tag={tag}>
+														{tag}
+													</a>
+												))}
+											</div>
+										)}
+									</div>
+									{post.data.heroImage && (
+										<div class="post-card-thumb" aria-hidden="true">
+											<a href={`/blog/${post.id}/`} tabindex="-1">
+												<img
+													src={post.data.heroImage.src}
+													width="440"
+													height="300"
+													alt=""
+													loading="lazy"
+												/>
+											</a>
+										</div>
+									)}
+								</article>
+							);
+						})
+					}
+				</div>
+				<div class="pagination" id="pagination" hidden>
+					<a class="badge" id="prev-page" href="#">Prev</a>
+					<a class="badge" id="next-page" href="#">Next</a>
+				</div>
+			</div>
+
+			<aside class="sidebar">
+				<div class="card sidebar-card">
+					<div class="sidebar-title">
+						<span>Search</span>
+						<a class="badge" href="/magazine/search">Advanced</a>
+					</div>
+					<input
+						id="blog-search"
+						class="sidebar-input"
+						type="search"
+						placeholder="Search posts..."
+						autocomplete="off"
+					/>
+				</div>
+
+				<div class="card sidebar-card">
+					<div class="sidebar-title">
+						<span>Tags</span>
+						<a class="badge" href="/magazine/archive">View all</a>
+					</div>
+					<div class="tag-cloud">
+						{allTags.map(([tag, count]) => (
+							<a class="badge" href={`/magazine/archive?tag=${encodeURIComponent(tag)}`}>
+								{tag} <span aria-hidden="true">·</span> {count}
+							</a>
+						))}
+					</div>
+				</div>
+
+				<div class="card sidebar-card">
+					<div class="sidebar-title">
+						<span>Archive</span>
+					</div>
+					<div class="sidebar-list">
+						{archives.map((item) => (
+							<a class="sidebar-item" href={`/magazine/archive?ym=${encodeURIComponent(item.ym)}`}>
+								<span class="sidebar-item-title">
+									{item.year} / {String(item.month).padStart(2, '0')}
+								</span>
+								<span class="sidebar-item-meta">{item.count} posts</span>
+							</a>
+						))}
+					</div>
+				</div>
+
+				<div class="card sidebar-card">
+					<div class="sidebar-title">
+						<span>Latest</span>
+					</div>
+					<div class="sidebar-list">
+						{latestPosts.map((post) => (
+							<a class="sidebar-item" href={`/magazine/blog/${post.id}/`}>
+								<span class="sidebar-item-title">{post.data.title}</span>
+								<span class="sidebar-item-meta">
+									<FormattedDate date={post.data.pubDate} />
+								</span>
+							</a>
+						))}
+					</div>
+				</div>
+			</aside>
+		</section>
+	</main>
+
+	<script is:inline data-astro-rerun>
+		(() => {
+			const tools = window.__pageStateTools;
+			if (!tools) return;
+			const page = tools.createCleanupContext('__magazinePostsPageCleanup');
+			const { on } = page;
+
+			const pageSubtitle = document.getElementById('page-subtitle');
+			const list = document.getElementById('post-list');
+			if (!pageSubtitle || !list) return;
+
+			const pagination = document.getElementById('pagination');
+			const prev = document.getElementById('prev-page');
+			const next = document.getElementById('next-page');
+
+			const searchInput = document.getElementById('blog-search');
+			const cards = Array.from(list.querySelectorAll('[data-title]'));
+			const pageSize = 4;
+
+			const pageHref = (pageNumber) => {
+				const url = new URL(window.location.href);
+				if (pageNumber <= 1) url.searchParams.delete('page');
+				else url.searchParams.set('page', String(pageNumber));
+				const search = url.searchParams.toString();
+				return search ? `${url.pathname}?${search}` : url.pathname;
+			};
+
+			const apply = () => {
+				const params = new URLSearchParams(window.location.search);
+				const tag = params.get('tag')?.trim();
+				const ym = params.get('ym')?.trim();
+				const qRaw = params.get('q')?.trim();
+				const q = qRaw ? qRaw.toLowerCase() : undefined;
+				const page = Math.max(1, Number.parseInt(params.get('page') ?? '1', 10) || 1);
+
+				let filtered = cards;
+				if (tag) {
+					filtered = filtered.filter((el) => {
+						const tags = (el.getAttribute('data-tags') ?? '')
+							.split(',')
+							.map((t) => t.trim())
+							.filter(Boolean);
+						return tags.includes(tag);
+					});
+				}
+				if (ym) {
+					filtered = filtered.filter((el) => (el.getAttribute('data-ym') ?? '') === ym);
+				}
+				if (q) {
+					filtered = filtered.filter((el) => {
+						const title = (el.getAttribute('data-title') ?? '').toLowerCase();
+						const desc = (el.getAttribute('data-description') ?? '').toLowerCase();
+						const tags = (el.getAttribute('data-tags') ?? '').toLowerCase();
+						const body = (el.getAttribute('data-body') ?? '').toLowerCase();
+						return title.includes(q) || desc.includes(q) || tags.includes(q) || body.includes(q);
+					});
+				}
+
+				const total = filtered.length;
+				const pages = Math.max(1, Math.ceil(total / pageSize));
+				const currentPage = Math.min(page, pages);
+				const start = (currentPage - 1) * pageSize;
+				const end = start + pageSize;
+
+				for (const el of cards) el.hidden = true;
+				for (const el of filtered.slice(start, end)) el.hidden = false;
+
+				const shown = Math.min(pageSize, Math.max(0, total - start));
+				const parts = [`Page ${currentPage}`, `Showing ${shown} of ${total} posts`];
+				if (tag) parts.push(`Tag: ${tag}`);
+				if (ym) parts.push(`Archive: ${ym}`);
+				if (qRaw) parts.push(`Query: ${qRaw}`);
+				pageSubtitle.textContent = parts.join(' / ');
+
+				if (pagination && prev && next) {
+					pagination.hidden = pages <= 1;
+					prev.hidden = currentPage <= 1;
+					next.hidden = currentPage >= pages;
+					prev.setAttribute('href', pageHref(currentPage - 1));
+					next.setAttribute('href', pageHref(currentPage + 1));
+				}
+
+				const tagLinks = Array.from(document.querySelectorAll('[data-tag-link]'));
+				for (const link of tagLinks) {
+					const t = link.getAttribute('data-tag-link');
+					if (!t) continue;
+					if (t === tag) link.setAttribute('aria-current', 'true');
+					else link.removeAttribute('aria-current');
+				}
+
+				const archiveLinks = Array.from(document.querySelectorAll('[data-archive-link]'));
+				for (const link of archiveLinks) {
+					const v = link.getAttribute('data-archive-link');
+					if (!v) continue;
+					if (v === ym) link.setAttribute('aria-current', 'true');
+					else link.removeAttribute('aria-current');
+				}
+
+				if (searchInput instanceof HTMLInputElement) {
+					searchInput.value = qRaw ?? '';
+				}
+			};
+
+			const setParams = (next) => {
+				tools.updateQueryParams(next, { resetPageKey: 'page' });
+				apply();
+			};
+
+			if (searchInput instanceof HTMLInputElement) {
+				tools.bindComposingInput(page, searchInput, (value) => {
+					setParams({ q: value });
+				});
+			}
+
+			const filterLinks = Array.from(document.querySelectorAll('[data-tag-link],[data-filter-tag],[data-archive-link]'));
+			for (const link of filterLinks) {
+				on(link, 'click', (e) => {
+					const a = e.currentTarget;
+					if (!(a instanceof HTMLAnchorElement)) return;
+					const tag = a.getAttribute('data-tag-link') ?? a.getAttribute('data-filter-tag');
+					const ym = a.getAttribute('data-archive-link');
+					if (!tag && !ym) return;
+					e.preventDefault();
+					setParams({ tag: tag ?? null, ym: ym ?? null });
+				});
+			}
+
+			on(window, 'popstate', apply);
+			apply();
+		})();
+	</script>
+</MagazineLayout>

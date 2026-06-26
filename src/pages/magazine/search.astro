@@ -1,0 +1,136 @@
+---
+import { getCollection } from 'astro:content';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
+import { countPostBodyCharacters, formatPostBodyCharCount } from '../../utils/postBodyStats';
+import { resolvePostDescription } from '../../utils/postDescription';
+import MagazineLayout from '../../layouts/MagazineLayout.astro';
+
+const posts = (await getCollection('blog')).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+const latestPosts = posts.slice(0, 4);
+
+const normalizeSearchText = (text?: string) => (text ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+---
+
+<MagazineLayout title={`Search · ${SITE_TITLE}`} description={SITE_DESCRIPTION}>
+	<main>
+		<div class="page-header magazine-page-header">
+			<div>
+				<a class="badge" href="/magazine">Back to Posts</a>
+				<h1 class="page-title">Search</h1>
+				<p class="page-subtitle" id="magazine-search-subtitle">Type to search posts...</p>
+			</div>
+		</div>
+
+		<div class="card sidebar-card magazine-search-shell" style="margin-bottom: 1rem;">
+			<input
+				id="magazine-search-input"
+				class="sidebar-input"
+				type="search"
+				placeholder="Search by title / description / tag..."
+				autocomplete="off"
+			/>
+		</div>
+
+		<section class="split-layout magazine-search-layout">
+			<div class="post-list" id="magazine-search-results">
+				{posts.map((post) => {
+					const cardDescription = resolvePostDescription(
+						post.data.description,
+						post.body,
+						post.data.title,
+					);
+					return (
+						<a
+							class="card card-hover post-card magazine-post-card"
+							href={`/magazine/blog/${post.id}/`}
+							data-title={post.data.title}
+							data-description={cardDescription}
+							data-tags={(post.data.tags ?? []).join(',')}
+							data-body={normalizeSearchText(post.body)}
+						>
+							<div class="post-card-main">
+								<div class="post-card-meta">
+									<span>{formatPostBodyCharCount(countPostBodyCharacters(post.body))}</span>
+									<span>{post.data.lang}</span>
+								</div>
+								<h2 class="post-card-title">{post.data.title}</h2>
+								<p class="post-card-desc">{cardDescription}</p>
+							</div>
+						</a>
+					);
+				})}
+			</div>
+
+			<aside class="sidebar">
+				<div class="card sidebar-card">
+					<div class="sidebar-title">
+						<span>Latest</span>
+					</div>
+					<div class="sidebar-list">
+						{latestPosts.map((post) => (
+							<a class="sidebar-item" href={`/magazine/blog/${post.id}/`}>
+								<span class="sidebar-item-title">{post.data.title}</span>
+								<span class="sidebar-item-meta">
+									{formatPostBodyCharCount(countPostBodyCharacters(post.body))}
+								</span>
+							</a>
+						))}
+					</div>
+				</div>
+			</aside>
+		</section>
+	</main>
+
+	<script is:inline data-astro-rerun>
+		(() => {
+			const tools = window.__pageStateTools;
+			if (!tools) return;
+			const page = tools.createCleanupContext('__magazineSearchPageCleanup');
+			const { on } = page;
+
+			const input = document.getElementById('magazine-search-input');
+			const subtitle = document.getElementById('magazine-search-subtitle');
+			const list = document.getElementById('magazine-search-results');
+			if (!(input instanceof HTMLInputElement) || !subtitle || !list) return;
+
+			const cards = Array.from(list.querySelectorAll('a[data-title]'));
+			const params = new URLSearchParams(window.location.search);
+			input.value = params.get('q') ?? '';
+
+			const apply = () => {
+				const qRaw = input.value.trim();
+				const q = qRaw.toLowerCase();
+				let shown = 0;
+				for (const el of cards) {
+					const title = (el.getAttribute('data-title') ?? '').toLowerCase();
+					const desc = (el.getAttribute('data-description') ?? '').toLowerCase();
+					const tags = (el.getAttribute('data-tags') ?? '').toLowerCase();
+					const body = (el.getAttribute('data-body') ?? '').toLowerCase();
+					const ok = !q || title.includes(q) || desc.includes(q) || tags.includes(q) || body.includes(q);
+					el.hidden = !ok;
+					if (ok) shown += 1;
+				}
+				subtitle.textContent = qRaw ? `Showing ${shown} result(s) for "${qRaw}"` : 'Type to search posts...';
+			};
+
+			const syncUrl = () => {
+				tools.updateQueryParams({ q: input.value.trim() }, { replace: true });
+			};
+
+			tools.bindComposingInput(page, input, () => {
+				syncUrl();
+				apply();
+			});
+
+			on(window, 'popstate', () => {
+				const params = new URLSearchParams(window.location.search);
+				input.value = params.get('q') ?? '';
+				apply();
+			});
+
+			apply();
+		})();
+	</script>
+</MagazineLayout>

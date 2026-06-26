@@ -15,8 +15,7 @@ const tags = [...new Set(entries.flatMap((entry) => entry.data.tags ?? []))].sor
 const recentAuthor = {
 	name: '村上春树',
 	avatar: AuthorAvatar,
-	description:
-		'一个爱跑步，爱写作的老头。——《当我谈跑步时，我在谈些什么》再阅读ing~',
+	description: '一个爱跑步，爱写作的老头。——《当我谈跑步时，我在谈些什么》再阅读ing~',
 };
 ---
 
@@ -29,15 +28,15 @@ const recentAuthor = {
 		<Header />
 		<main>
 			<section class="reading-hero">
-
-			</section>
-			<section class="split-layout reading-layout">
-				<div class="reading-shelf">
-									<div class="reading-hero-copy">
+				<div class="reading-hero-copy">
 					<p class="reading-kicker">拾瀚阁</p>
 					<h1 class="page-title">Reading</h1>
-					<p class="page-subtitle">让诗与歌还有文字一起流动，藉以陶冶自己的心灵与灵魂。</p>
+					<p class="page-subtitle">让诗与文字一起流动，留一点温柔给日常的缝隙。</p>
 				</div>
+			</section>
+
+			<section class="split-layout reading-layout">
+				<div class="reading-shelf">
 					<a class="badge reading-clear" href="/reading" id="reading-clear" hidden>Clear filter</a>
 
 					<div class="reading-grid" id="reading-grid">
@@ -66,6 +65,7 @@ const recentAuthor = {
 							</article>
 						))}
 					</div>
+
 					<nav class="reading-pagination" id="reading-pagination" aria-label="Reading pages" hidden>
 						<button class="badge" id="reading-prev" type="button">Prev</button>
 						<span id="reading-page-status"></span>
@@ -224,12 +224,6 @@ const recentAuthor = {
 				width: 100%;
 				padding: 1.2rem 1.25rem;
 				margin-bottom: 15px;
-				/* border: 1px solid rgba(var(--border), 0.92); */
-				/* border-radius: 14px;
-				background:
-					linear-gradient(90deg, rgba(var(--gray-light), 0.34), transparent 1.25rem),
-					rgba(var(--card), var(--card-alpha));
-				box-shadow: 0 14px 34px rgba(2, 6, 23, 0.06); */
 			}
 			.reading-kicker {
 				margin: 0 0 0.35rem;

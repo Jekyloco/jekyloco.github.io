@@ -1,0 +1,140 @@
+---
+import { getCollection } from 'astro:content';
+import { SITE_TITLE } from '../../consts';
+
+const posts = (await getCollection('blog')).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+const latestPostId = posts[0]?.id;
+
+const navItems = [
+	{ href: '/magazine', label: 'INDEX' },
+	{ href: '/magazine/archive', label: 'ARCHIVE' },
+	{ href: '/magazine/search', label: 'SEARCH' },
+	{ href: '/magazine/reading', label: 'READING' },
+	{ href: '/magazine/about', label: 'ABOUT' },
+];
+const latestHref = latestPostId ? `/magazine/blog/${latestPostId}/` : '/magazine';
+---
+
+<header class="magazine-header">
+	<div class="magazine-header-inner">
+		<a class="magazine-brand" href="/magazine">
+			<span class="magazine-brand-text">{SITE_TITLE}</span>
+		</a>
+		<nav class="magazine-nav" aria-label="Primary">
+			{
+				navItems.map((item) => (
+					<a class="magazine-nav-link" href={item.href}>{item.label}</a>
+				))
+			}
+		</nav>
+		<a class="magazine-header-cta" href={latestHref}>LATEST</a>
+	</div>
+</header>
+
+<style>
+	.magazine-header {
+		width: 100%;
+		border-bottom: 1px solid var(--border-ink);
+		background: var(--bg-paper);
+	}
+
+	.magazine-header-inner {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1.5rem;
+		width: 100%;
+		padding: clamp(1rem, 2vw, 1.35rem) var(--magazine-gutter);
+	}
+
+	.magazine-brand {
+		text-decoration: none;
+		color: var(--text-ink);
+		flex-shrink: 0;
+	}
+
+	.magazine-brand-text {
+		font-family: var(--magazine-mono);
+		font-size: clamp(0.85rem, 1.2vw, 1.05rem);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.16em;
+		line-height: 1;
+	}
+
+	.magazine-nav {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem 1.75rem;
+		flex: 1;
+	}
+
+	.magazine-nav-link {
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.18em;
+		text-decoration: none;
+		color: var(--text-ink);
+		line-height: 1.2;
+		transition: color 120ms ease;
+	}
+
+	.magazine-nav-link:hover {
+		color: var(--color-accent-green);
+	}
+
+	.magazine-header-cta {
+		flex-shrink: 0;
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.18em;
+		text-decoration: none;
+		color: var(--text-ink);
+		border: 1px solid var(--border-ink);
+		padding: 0.7rem 1rem;
+		line-height: 1;
+		white-space: nowrap;
+		transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+	}
+
+	.magazine-header-cta:hover {
+		color: var(--color-accent-green);
+		border-color: var(--color-accent-green);
+		background: rgba(27, 77, 62, 0.04);
+	}
+
+	.magazine-search {
+		flex-shrink: 0;
+	}
+
+	@media (max-width: 720px) {
+		.magazine-header-inner {
+			flex-wrap: wrap;
+		}
+
+		.magazine-nav {
+			order: 3;
+			width: 100%;
+			justify-content: flex-start;
+			gap: 0.65rem 1.25rem;
+		}
+
+		.magazine-search {
+			order: 2;
+		}
+
+		.magazine-header-cta {
+			order: 4;
+			width: 100%;
+			text-align: center;
+		}
+	}
+</style>

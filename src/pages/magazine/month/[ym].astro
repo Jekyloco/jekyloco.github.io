@@ -1,0 +1,42 @@
+---
+import { getCollection } from 'astro:content';
+import MagazineArticleList from '../../../components/magazine/MagazineArticleList.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../../../consts';
+import MagazineLayout from '../../../layouts/MagazineLayout.astro';
+
+const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+export async function getStaticPaths() {
+	const posts = await getCollection('blog');
+	const monthMap = new Map<string, typeof posts>();
+
+	for (const post of posts) {
+		const year = post.data.pubDate.getFullYear();
+		const month = post.data.pubDate.getMonth() + 1;
+		const ym = `${year}-${String(month).padStart(2, '0')}`;
+		monthMap.set(ym, [...(monthMap.get(ym) ?? []), post]);
+	}
+
+	return [...monthMap.entries()].map(([ym, monthPosts]) => ({
+		params: { ym },
+		props: {
+			ym,
+			posts: monthPosts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()),
+		},
+	}));
+}
+
+type Props = {
+	ym: string;
+	posts: Awaited<ReturnType<typeof getCollection<'blog'>>>;
+};
+
+const { ym, posts } = Astro.props;
+const [year, month] = ym.split('-').map((n) => Number.parseInt(n, 10));
+const monthLabel = `${MONTH_NAMES[month - 1]} — ${year}`;
+const pageTitle = `${monthLabel} · ${SITE_TITLE}`;
+---
+
+<MagazineLayout title={pageTitle} description={SITE_DESCRIPTION}>
+	<MagazineArticleList posts={posts} ym={ym} monthLabel={monthLabel} />
+</MagazineLayout>

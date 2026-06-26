@@ -1,0 +1,106 @@
+---
+import MagazineLayout from '../../layouts/MagazineLayout.astro';
+import AboutImage from '../../images/image.jpg';
+import AboutImage02 from '../../images/image_251122_42.jpg';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
+---
+
+<MagazineLayout title={`About Me · ${SITE_TITLE}`} description={SITE_DESCRIPTION}>
+	<main class="about-container">
+		<aside class="left-col">
+			<h1 class="page-title">{SITE_TITLE}</h1>
+			<p class="page-subtitle" style="margin-top: 30px">{SITE_DESCRIPTION}</p>
+			<div class="about-me-image" style="margin-top: 3em">
+				<img src={AboutImage.src} alt="" loading="lazy" style="width: 100%; height: auto;" />
+			</div>
+		</aside>
+
+		<section class="right-col">
+			<h1 class="page-title" style="padding-top: 5px;">About me</h1>
+			<div class="post-card-meta">May 5, 2026</div>
+			<div class="card content-card">
+				<hr />
+				<p>这个博客是做什么的呢？这个问题自己也说不太清楚。但在此之前已经搭建过两个博客了，一个是通过 HEXO，另一个是通过 WordPress，当然啦，都没成气候。究其原因嘛，一半是自己不上心，另一半是觉得维护起来比较麻烦。</p>
+				<p>目前这个博客受知乎网友启发，通过 Codex、Cursor 的免费额度以及 Trae 的 Lite Plan 使用 Astro 框架自定义搭建起来的。自己也就写了写需求和做了一点界面的优化，感觉使用和维护起来都比较方便，便决定尝试好好运维起来。</p>
+				<p>为什么突然又捡起来这劳什子呢？一方面看到很多别人的博客，心里实在是羡慕得不行。另一方面是想为自己找到一个宣泄的出口，用来记录自己。之前通过 iCloud 的 Notes 其实也记录下很多东西，但如今觉得在互联网中稍稍留下一点痕迹也没有什么关系。</p>
+				<p>即使这个博客会像旅行者号一样孤独地在宇宙中遨游，却得不到任何回应，但这也并不重要，重要的是我如何去对待它。</p>
+				<p>作为一个在互联网夹缝中生存的打工人，算来也迈入社会快三年了。当然，我对现在的工作并没有什么强烈的不满，毕竟当前还得仰赖辛苦工作带来的些许俸禄。但当我脱离被社会框架勾勒的成长轨迹之后，当我完全独立地站在人生的旷野之上时，我确实不知道该走向何方，迷茫得不知所措。</p>
+				<p>那些在以往岁月中为我带来快乐的动漫、书籍、游戏等很多行为都失去了很多意味，有时再难领略以往那种快乐。曾经那些充满想象与理想的美好未来，如今看来更加遥不可及。所以，我想这是这个博客诞生的根本原因。不仅仅是记录，更是一种对话。</p>
+				<p>为自己干涸的灵魂带来一些希望与激情，然后在生活与工作上产生动力去把一些小事做好。这便是对自己以及这个博客的期许。</p>
+				<p>“悟已往之不谏，知来者之可追”——这句话献给 About me。</p>
+				<hr />
+				<img src={AboutImage02.src} alt="" loading="lazy" style="width: 100%; height: auto;" />
+			</div>
+		</section>
+	</main>
+</MagazineLayout>
+
+<style>
+	.about-container {
+		display: grid;
+		grid-template-columns: 1fr 2fr;
+		gap: 2rem;
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 2rem;
+	}
+
+	.left-col {
+		display: flex;
+		flex-direction: column;
+		border-right: 1px solid var(--border-ink);
+		padding-right: 2rem;
+	}
+
+	.right-col {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+		min-width: 0;
+	}
+
+	.about-me-image img {
+		max-width: 100%;
+		height: auto;
+		display: block;
+	}
+
+	.content-card {
+		padding: 1.5rem;
+		background: rgba(255, 255, 255, 0.16);
+		border-radius: 0;
+		border: 1px solid var(--border-ink);
+	}
+
+	.content-card hr {
+		border: none;
+		border-top: 1px solid var(--border-ink);
+		margin: 1rem 0 1.2rem;
+	}
+
+	.content-card p {
+		line-height: 1.8;
+		margin: 0 0 1rem;
+	}
+
+	.content-card img {
+		width: 100%;
+		height: auto;
+		display: block;
+		margin-top: 1rem;
+	}
+
+	@media (max-width: 768px) {
+		.about-container {
+			grid-template-columns: 1fr;
+		}
+
+		.left-col {
+			border-right: none;
+			border-bottom: 1px solid var(--border-ink);
+			padding-right: 0;
+			padding-bottom: 2rem;
+			margin-bottom: 2rem;
+		}
+	}
+</style>

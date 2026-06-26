@@ -1,0 +1,576 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { countPostBodyCharacters, formatPostBodyCharCount } from '../../utils/postBodyStats';
+import { resolvePostDescription } from '../../utils/postDescription';
+
+interface Props {
+	posts: CollectionEntry<'blog'>[];
+	ym: string;
+	monthLabel: string;
+}
+
+const { posts, ym, monthLabel } = Astro.props;
+
+const formatMachineDate = (date: Date) => {
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, '0');
+	return `${year}-${month}-${day}`;
+};
+
+const previewPost = posts[0] ?? null;
+const previewDescription = previewPost
+	? resolvePostDescription(previewPost.data.description, previewPost.body, previewPost.data.title)
+	: '';
+const previewTags = previewPost?.data.tags ?? [];
+---
+
+<section class="magazine-archive" aria-label={`Articles for ${monthLabel}`}>
+	<div class="magazine-archive-header">
+		<div>
+			<a class="magazine-back-link" href="/magazine">BACK TO INDEX</a>
+			<h1 class="magazine-archive-title">{monthLabel}</h1>
+			<p class="magazine-archive-subtitle">
+				{posts.length} {posts.length === 1 ? 'ARTICLE' : 'ARTICLES'} THIS MONTH
+			</p>
+		</div>
+		<div class="magazine-archive-meta">
+			<span>MONTH</span>
+			<span>{ym}</span>
+		</div>
+	</div>
+
+	<div class="magazine-archive-layout">
+		<div class="magazine-archive-list-panel">
+			<div class="magazine-archive-list-head">
+				<span>ARTICLE INDEX</span>
+				<span>{posts.length}</span>
+			</div>
+			<div class="magazine-archive-list" id="magazine-article-list">
+				{posts.map((post, index) => {
+					const tags = post.data.tags ?? [];
+					const description = resolvePostDescription(post.data.description, post.body, post.data.title);
+					const image = post.data.heroImage?.src ?? '';
+					const alt = post.data.heroImage?.alt ?? post.data.title;
+					const active = index === 0;
+					return (
+						<button
+							class={`magazine-article-item${active ? ' is-active' : ''}`}
+							type="button"
+							data-preview-index={index}
+							data-preview-href={`/magazine/blog/${post.id}/`}
+							data-preview-date={formatMachineDate(post.data.pubDate)}
+							data-preview-charcount={formatPostBodyCharCount(countPostBodyCharacters(post.body))}
+							data-preview-lang={post.data.lang}
+							data-preview-title={post.data.title}
+							data-preview-description={description}
+							data-preview-image={image}
+							data-preview-alt={alt}
+							data-preview-tags={tags.join('|')}
+							aria-pressed={String(active)}
+						>
+							<div class="magazine-article-item-meta">
+								<time datetime={formatMachineDate(post.data.pubDate)}>
+									{formatMachineDate(post.data.pubDate)}
+								</time>
+								<span>{formatPostBodyCharCount(countPostBodyCharacters(post.body))}</span>
+								<span>{post.data.lang}</span>
+							</div>
+							<h2 class="magazine-article-item-title">{post.data.title}</h2>
+							<p class="magazine-article-item-desc">{description}</p>
+							<div class="magazine-article-item-foot">
+								{tags.slice(0, 4).length > 0 && (
+									<div class="magazine-article-item-tags" aria-label="Tags">
+										{tags.slice(0, 4).map((tag) => (
+											<span class="magazine-article-item-tag">{tag}</span>
+										))}
+									</div>
+								)}
+								<span class="magazine-article-item-action">PREVIEW</span>
+							</div>
+						</button>
+					);
+				})}
+			</div>
+		</div>
+
+		<div class="magazine-archive-preview-panel" aria-live="polite">
+			<article class="magazine-preview-card" id="magazine-preview-card">
+				<div class="magazine-preview-header">
+					<div class="magazine-preview-meta">
+						<time id="magazine-preview-date" datetime={previewPost ? formatMachineDate(previewPost.data.pubDate) : ''}>
+							{previewPost ? formatMachineDate(previewPost.data.pubDate) : ''}
+						</time>
+						<span id="magazine-preview-charcount">
+							{previewPost ? formatPostBodyCharCount(countPostBodyCharacters(previewPost.body)) : ''}
+						</span>
+						<span id="magazine-preview-lang">{previewPost?.data.lang ?? ''}</span>
+					</div>
+					<a class="magazine-preview-open" id="magazine-preview-open" href={previewPost ? `/magazine/blog/${previewPost.id}/` : '/magazine'}>
+						OPEN ARTICLE
+					</a>
+				</div>
+
+				<div class="magazine-preview-body">
+					{previewPost?.data.heroImage && (
+						<div class="magazine-preview-media" aria-hidden="true">
+							<img
+								id="magazine-preview-image"
+								src={previewPost.data.heroImage.src}
+								alt={previewPost.data.heroImage.alt ?? previewPost.data.title}
+								width="1600"
+								height="900"
+								loading="eager"
+							/>
+						</div>
+					)}
+					<div class="magazine-preview-kicker">FEATURED ARTICLE</div>
+					<h2 class="magazine-preview-title" id="magazine-preview-title">
+						{previewPost?.data.title ?? 'No article selected'}
+					</h2>
+					<p class="magazine-preview-description" id="magazine-preview-description">
+						{previewDescription || 'Select an article from the index to preview it here.'}
+					</p>
+					<div class="magazine-preview-tags" id="magazine-preview-tags" aria-label="Tags">
+						{previewTags.length > 0 ? (
+							previewTags.slice(0, 4).map((tag) => (
+								<a class="magazine-preview-tag" href={`/magazine/search?tag=${encodeURIComponent(tag)}`}>
+									{tag}
+								</a>
+							))
+						) : (
+							<span class="magazine-preview-empty">NO TAGS</span>
+						)}
+					</div>
+				</div>
+			</article>
+		</div>
+	</div>
+</section>
+
+<script is:inline>
+	(() => {
+		const list = document.getElementById('magazine-article-list');
+		const previewCard = document.getElementById('magazine-preview-card');
+		const previewDate = document.getElementById('magazine-preview-date');
+		const previewCharCount = document.getElementById('magazine-preview-charcount');
+		const previewLang = document.getElementById('magazine-preview-lang');
+		const previewTitle = document.getElementById('magazine-preview-title');
+		const previewDescription = document.getElementById('magazine-preview-description');
+		const previewTags = document.getElementById('magazine-preview-tags');
+		const previewOpen = document.getElementById('magazine-preview-open');
+		const previewImage = document.getElementById('magazine-preview-image');
+		if (
+			!(list instanceof HTMLElement) ||
+			!(previewCard instanceof HTMLElement) ||
+			!(previewDate instanceof HTMLElement) ||
+			!(previewCharCount instanceof HTMLElement) ||
+			!(previewLang instanceof HTMLElement) ||
+			!(previewTitle instanceof HTMLElement) ||
+			!(previewDescription instanceof HTMLElement) ||
+			!(previewTags instanceof HTMLElement) ||
+			!(previewOpen instanceof HTMLAnchorElement)
+		) {
+			return;
+		}
+
+		const items = Array.from(list.querySelectorAll('[data-preview-index]'));
+		const previewData = items.map((item) => ({
+			href: item.getAttribute('data-preview-href') ?? '',
+			date: item.getAttribute('data-preview-date') ?? '',
+			charCount: item.getAttribute('data-preview-charcount') ?? '',
+			lang: item.getAttribute('data-preview-lang') ?? '',
+			title: item.getAttribute('data-preview-title') ?? '',
+			description: item.getAttribute('data-preview-description') ?? '',
+			image: item.getAttribute('data-preview-image') ?? '',
+			alt: item.getAttribute('data-preview-alt') ?? '',
+			tags: (item.getAttribute('data-preview-tags') ?? '')
+				.split('|')
+				.map((tag) => tag.trim())
+				.filter(Boolean),
+		}));
+
+		const setActive = (index) => {
+			const data = previewData[index];
+			if (!data) return;
+			for (const item of items) {
+				item.classList.toggle('is-active', Number.parseInt(item.getAttribute('data-preview-index') ?? '-1', 10) === index);
+				item.setAttribute(
+					'aria-pressed',
+					String(Number.parseInt(item.getAttribute('data-preview-index') ?? '-1', 10) === index),
+				);
+			}
+			previewCard.dataset.hasSelection = 'true';
+			previewDate.textContent = data.date;
+			previewCharCount.textContent = data.charCount;
+			previewLang.textContent = data.lang;
+			previewTitle.textContent = data.title;
+			previewDescription.textContent = data.description;
+			previewOpen.href = data.href;
+			if (previewImage instanceof HTMLImageElement) {
+				if (data.image) {
+					previewImage.src = data.image;
+					previewImage.alt = data.alt || data.title;
+					previewImage.hidden = false;
+				} else {
+					previewImage.removeAttribute('src');
+					previewImage.alt = '';
+					previewImage.hidden = true;
+				}
+			}
+			previewTags.replaceChildren();
+			if (data.tags.length) {
+				for (const tag of data.tags) {
+					const span = document.createElement('span');
+					span.className = 'magazine-preview-tag';
+					span.textContent = tag;
+					previewTags.appendChild(span);
+				}
+			} else {
+				const span = document.createElement('span');
+				span.className = 'magazine-preview-empty';
+				span.textContent = 'NO TAGS';
+				previewTags.appendChild(span);
+			}
+		};
+
+		for (const item of items) {
+			item.addEventListener('click', () => {
+				const index = Number.parseInt(item.getAttribute('data-preview-index') ?? '0', 10);
+				setActive(index);
+			});
+		}
+
+		const url = new URL(window.location.href);
+		const initial = Number.parseInt(url.searchParams.get('preview') ?? '0', 10);
+		setActive(Number.isFinite(initial) ? Math.max(0, Math.min(initial, previewData.length - 1)) : 0);
+	})();
+</script>
+
+<style>
+	.magazine-back-link {
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.18em;
+		text-decoration: none;
+		color: var(--text-ink);
+		transition: color 120ms ease;
+	}
+
+	.magazine-back-link:hover {
+		color: var(--color-accent-green);
+	}
+
+	.magazine-archive {
+		padding-top: clamp(1.5rem, 3vw, 2.5rem);
+	}
+
+	.magazine-archive-header {
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 1.5rem;
+		padding-bottom: clamp(1rem, 2vw, 1.5rem);
+		border-bottom: 1px solid var(--border-ink);
+		margin-bottom: clamp(1.25rem, 3vw, 2rem);
+	}
+
+	.magazine-archive-title {
+		margin: 0.85rem 0 0;
+		font-family: var(--magazine-mono);
+		font-size: clamp(1.5rem, 4vw, 2.75rem);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		line-height: 1.1;
+		color: var(--text-ink);
+	}
+
+	.magazine-archive-subtitle {
+		margin: 0.45rem 0 0;
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.16em;
+		color: var(--text-ink);
+		opacity: 0.68;
+	}
+
+	.magazine-archive-meta {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.3rem;
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.16em;
+		opacity: 0.62;
+	}
+
+	.magazine-archive-layout {
+		display: grid;
+		grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+		gap: clamp(1rem, 2vw, 1.75rem);
+		align-items: start;
+	}
+
+	.magazine-archive-list-panel,
+	.magazine-archive-preview-panel {
+		min-width: 0;
+	}
+
+	.magazine-archive-list-panel {
+		display: grid;
+		gap: 0.9rem;
+	}
+
+	.magazine-archive-list-head {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.16em;
+		padding-bottom: 0.85rem;
+		border-bottom: 1px solid var(--border-ink);
+	}
+
+	.magazine-archive-list {
+		display: grid;
+		gap: 0.75rem;
+	}
+
+	.magazine-article-item {
+		display: grid;
+		gap: 0.45rem;
+		width: 100%;
+		padding: 1rem 1rem 1.05rem;
+		border: 1px solid transparent;
+		border-bottom-color: var(--border-ink);
+		background: transparent;
+		color: var(--text-ink);
+		text-align: left;
+		cursor: pointer;
+		transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+	}
+
+	.magazine-article-item:hover,
+	.magazine-article-item.is-active {
+		border-color: rgba(27, 77, 62, 0.32);
+		background: rgba(27, 77, 62, 0.04);
+		transform: translateY(-1px);
+	}
+
+	.magazine-article-item-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.45rem 1rem;
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+		opacity: 0.68;
+	}
+
+	.magazine-article-item-title {
+		margin: 0;
+		font-size: clamp(1.15rem, 2.5vw, 1.75rem);
+		font-weight: 750;
+		line-height: 1.18;
+		letter-spacing: -0.02em;
+	}
+
+	.magazine-article-item-desc {
+		margin: 0;
+		font-size: clamp(0.98rem, 1.35vw, 1.12rem);
+		line-height: 1.65;
+		opacity: 0.78;
+		max-width: 90ch;
+	}
+
+	.magazine-article-item-foot {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		gap: 0.75rem 1rem;
+		align-items: center;
+		margin-top: 0.25rem;
+	}
+
+	.magazine-article-item-tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.45rem;
+	}
+
+	.magazine-article-item-tag,
+	.magazine-article-item-action {
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+	}
+
+	.magazine-article-item-tag {
+		padding-bottom: 0.08rem;
+		border-bottom: 1px solid var(--border-ink);
+		opacity: 0.78;
+	}
+
+	.magazine-article-item-action {
+		color: var(--color-accent-green);
+	}
+
+	.magazine-preview-card {
+		position: sticky;
+		top: 1rem;
+		display: grid;
+		gap: 1.1rem;
+		padding: clamp(1.1rem, 2.5vw, 1.6rem);
+		border: 1px solid var(--border-ink);
+		background: rgba(255, 255, 255, 0.18);
+	}
+
+	.magazine-preview-header {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 1rem;
+		padding-bottom: 0.9rem;
+		border-bottom: 1px solid var(--border-ink);
+	}
+
+	.magazine-preview-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.45rem 0.9rem;
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+		opacity: 0.68;
+	}
+
+	.magazine-preview-open {
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.16em;
+		text-decoration: none;
+		color: var(--text-ink);
+		border: 1px solid var(--border-ink);
+		padding: 0.65rem 0.9rem;
+		white-space: nowrap;
+	}
+
+	.magazine-preview-open:hover {
+		color: var(--color-accent-green);
+		border-color: var(--color-accent-green);
+	}
+
+	.magazine-preview-body {
+		display: grid;
+		gap: 0.85rem;
+	}
+
+	.magazine-preview-media {
+		overflow: hidden;
+		border: 1px solid var(--border-ink);
+		background: rgba(26, 26, 26, 0.03);
+	}
+
+	.magazine-preview-media img {
+		display: block;
+		width: 100%;
+		height: auto;
+		aspect-ratio: 16 / 9;
+		object-fit: cover;
+	}
+
+	.magazine-preview-kicker {
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.2em;
+		color: var(--color-accent-green);
+	}
+
+	.magazine-preview-title {
+		margin: 0;
+		font-size: clamp(1.7rem, 4vw, 3.2rem);
+		line-height: 1.04;
+		letter-spacing: -0.03em;
+	}
+
+	.magazine-preview-description {
+		margin: 0;
+		font-size: clamp(1.05rem, 1.55vw, 1.25rem);
+		line-height: 1.7;
+		opacity: 0.84;
+	}
+
+	.magazine-preview-tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem 0.75rem;
+		padding-top: 0.2rem;
+	}
+
+	.magazine-preview-tag,
+	.magazine-preview-empty {
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+		padding-bottom: 0.08rem;
+		border-bottom: 1px solid var(--border-ink);
+	}
+
+	.magazine-preview-empty {
+		opacity: 0.5;
+		border-bottom-style: dashed;
+	}
+
+	@media (max-width: 980px) {
+		.magazine-archive-layout {
+			grid-template-columns: 1fr;
+		}
+
+		.magazine-preview-card {
+			position: static;
+		}
+	}
+
+	@media (max-width: 720px) {
+		.magazine-archive-header {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+
+		.magazine-archive-meta {
+			align-items: flex-start;
+		}
+
+		.magazine-article-item {
+			padding-inline: 0.85rem;
+		}
+
+		.magazine-preview-header {
+			flex-direction: column;
+		}
+	}
+</style>

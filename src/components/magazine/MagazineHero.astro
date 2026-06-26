@@ -1,0 +1,127 @@
+---
+import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
+
+interface Props {
+	latestPostId?: string;
+}
+
+const { latestPostId } = Astro.props;
+const latestHref = latestPostId ? `/magazine/blog/${latestPostId}/` : '/magazine';
+---
+
+<section class="magazine-hero" aria-label="Intro">
+	<div class="magazine-hero-inner">
+		<div class="magazine-hero-top">
+			<div>
+				<p class="magazine-hero-label">EDITORIAL</p>
+				<h1 class="magazine-hero-title">{SITE_TITLE}</h1>
+				<p class="magazine-hero-subtitle">{SITE_DESCRIPTION}</p>
+			</div>
+			<a class="magazine-hero-cta" href={latestHref}>READ LATEST</a>
+		</div>
+		<blockquote class="magazine-hero-quote">
+			<p>
+				無駄だ　ここは元から楽しい地獄だ<br />
+				生まれ落ちた時から　出口はないんだ<br />
+				<br />
+				いつも窓の外の　憧れを眺めて<br />
+				希望に似た花が　女のように笑うさまに<br />
+				手を伸ばした
+			</p>
+		</blockquote>
+	</div>
+</section>
+
+<style>
+	.magazine-hero {
+		width: 100%;
+		min-height: min(72vh, 780px);
+		display: flex;
+		align-items: center;
+		border-bottom: 1px solid var(--border-ink);
+	}
+
+	.magazine-hero-inner {
+		width: 100%;
+		padding: clamp(2rem, 5vw, 4.5rem) 0;
+	}
+
+	.magazine-hero-top {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 2rem;
+		margin-bottom: clamp(2rem, 4vw, 3rem);
+	}
+
+	.magazine-hero-label {
+		margin: 0 0 0.75rem;
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.22em;
+		color: var(--color-accent-green);
+	}
+
+	.magazine-hero-title {
+		margin: 0;
+		font-size: var(--magazine-title-size);
+		font-weight: 750;
+		line-height: 1.05;
+		color: var(--text-ink);
+		letter-spacing: -0.03em;
+	}
+
+	.magazine-hero-subtitle {
+		margin: clamp(0.65rem, 1.5vw, 1rem) 0 0;
+		font-size: var(--magazine-lead-size);
+		line-height: 1.45;
+		color: var(--text-ink);
+		opacity: 0.76;
+		max-width: 52ch;
+	}
+
+	.magazine-hero-cta {
+		flex-shrink: 0;
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.2em;
+		text-decoration: none;
+		color: var(--text-ink);
+		border: 1px solid var(--border-ink);
+		padding: 0.7rem 1.1rem;
+		line-height: 1;
+		transition: color 120ms ease, border-color 120ms ease;
+	}
+
+	.magazine-hero-cta:hover {
+		color: var(--color-accent-green);
+		border-color: var(--color-accent-green);
+	}
+
+	.magazine-hero-quote {
+		margin: 0;
+		padding: 0;
+		border: none;
+	}
+
+	.magazine-hero-quote p {
+		margin: 0;
+		font-size: var(--magazine-lead-size);
+		line-height: 1.65;
+		color: var(--text-ink);
+	}
+
+	@media (max-width: 720px) {
+		.magazine-hero {
+			min-height: auto;
+		}
+
+		.magazine-hero-top {
+			flex-direction: column;
+		}
+	}
+</style>

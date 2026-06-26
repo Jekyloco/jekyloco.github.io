@@ -1,0 +1,31 @@
+---
+import { type CollectionEntry, getCollection, render } from 'astro:content';
+import MagazinePost from '../../../layouts/MagazinePost.astro';
+import { countPostBodyCharacters } from '../../../utils/postBodyStats';
+import { resolvePostDescription } from '../../../utils/postDescription';
+
+export async function getStaticPaths() {
+	const posts = await getCollection('blog');
+	return posts.map((post) => ({
+		params: { slug: post.id },
+		props: post,
+	}));
+}
+
+type Props = CollectionEntry<'blog'>;
+
+const post = Astro.props;
+const { Content } = await render(post);
+const resolvedDescription = resolvePostDescription(post.data.description, post.body, post.data.title);
+const monthYm = `${post.data.pubDate.getFullYear()}-${String(post.data.pubDate.getMonth() + 1).padStart(2, '0')}`;
+---
+
+<MagazinePost
+	{...post.data}
+	description={resolvedDescription}
+	bodyCharCount={countPostBodyCharacters(post.body)}
+	backHref={`/magazine/month/${monthYm}`}
+	backLabel="BACK TO MONTH"
+>
+	<Content />
+</MagazinePost>

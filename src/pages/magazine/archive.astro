@@ -1,0 +1,261 @@
+---
+import { getCollection } from 'astro:content';
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import FormattedDate from '../../components/FormattedDate.astro';
+import Header from '../../components/Header.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
+import { countPostBodyCharacters, formatPostBodyCharCount } from '../../utils/postBodyStats';
+import { resolvePostDescription } from '../../utils/postDescription';
+import MagazineLayout from '../../layouts/MagazineLayout.astro';
+
+const posts = (await getCollection('blog')).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+
+const tagCounts = new Map<string, number>();
+for (const post of posts) {
+	for (const tag of post.data.tags ?? []) {
+		tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+	}
+}
+const allTags = [...tagCounts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+
+type MonthItem = { ym: string; year: number; month: number; count: number };
+const monthCounts = new Map<string, number>();
+for (const post of posts) {
+	const year = post.data.pubDate.getFullYear();
+	const month = post.data.pubDate.getMonth() + 1;
+	const ym = `${year}-${String(month).padStart(2, '0')}`;
+	monthCounts.set(ym, (monthCounts.get(ym) ?? 0) + 1);
+}
+const months: MonthItem[] = [...monthCounts.entries()]
+	.map(([ym, count]) => {
+		const [year, month] = ym.split('-').map((n) => Number.parseInt(n, 10));
+		return { ym, year, month, count };
+	})
+	.sort((a, b) => b.ym.localeCompare(a.ym));
+
+const postsByYear = new Map<number, typeof posts>();
+for (const post of posts) {
+	const year = post.data.pubDate.getFullYear();
+	postsByYear.set(year, [...(postsByYear.get(year) ?? []), post]);
+}
+const yearGroups = [...postsByYear.entries()].sort((a, b) => b[0] - a[0]);
+const latestPosts = posts.slice(0, 5);
+
+const formatMachineDate = (date: Date) => {
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, '0');
+	return `${year}-${month}-${day}`;
+};
+---
+
+<MagazineLayout title={`Archive · ${SITE_TITLE}`} description={SITE_DESCRIPTION}>
+	<main>
+		<div class="page-header magazine-page-header archive-page-header">
+			<div>
+				<h1 class="page-title">Archive</h1>
+				<p class="page-subtitle" id="archive-subtitle">All posts in one flowing timeline.</p>
+			</div>
+			<a class="badge magazine-head-badge" href="/magazine">Card View</a>
+		</div>
+
+		<section class="split-layout archive-layout">
+			<div class="card archive-panel">
+				<div class="archive-total">
+					<span class="archive-total-dot" aria-hidden="true"></span>
+					<span id="archive-heading">All Posts - {posts.length}</span>
+				</div>
+				<div class="archive-filter-bar" id="archive-filter-bar" hidden>
+					<span id="archive-filter-label"></span>
+					<a class="badge" href="/magazine/archive" id="archive-clear">Clear</a>
+				</div>
+				<div class="archive-timeline" id="archive-timeline">
+					{
+						yearGroups.map(([year, yearPosts]) => (
+							<section class="archive-year-group" data-year-group={year}>
+								<h2 class="archive-year">
+									<span class="archive-year-dot" aria-hidden="true"></span>
+									{year}
+								</h2>
+								<div class="archive-items">
+									{yearPosts.map((post) => {
+										const tags = post.data.tags ?? [];
+										const month = post.data.pubDate.getMonth() + 1;
+										const ym = `${post.data.pubDate.getFullYear()}-${String(month).padStart(2, '0')}`;
+										return (
+											<article
+												class="archive-entry"
+												data-archive-entry
+												data-title={post.data.title}
+												data-tags={tags.join(',')}
+												data-ym={ym}
+											>
+												<a class="archive-entry-link" href={`/magazine/blog/${post.id}/`}>
+													<span class="archive-entry-dot" aria-hidden="true"></span>
+													<span class="archive-entry-body">
+														<span class="archive-entry-meta">
+															<span class="archive-date-icon" aria-hidden="true">
+																<svg viewBox="0 0 24 24" width="14" height="14">
+																	<path
+																		fill="currentColor"
+																		d="M7 2a1 1 0 011 1v1h8V3a1 1 0 112 0v1h1a3 3 0 013 3v11a3 3 0 01-3 3H5a3 3 0 01-3-3V7a3 3 0 013-3h1V3a1 1 0 011-1zm13 8H4v8a1 1 0 001 1h14a1 1 0 001-1v-8zM5 6a1 1 0 00-1 1v1h16V7a1 1 0 00-1-1H5z"
+																	/>
+																</svg>
+															</span>
+															<time datetime={formatMachineDate(post.data.pubDate)}>
+																{formatMachineDate(post.data.pubDate)}
+															</time>
+															<span>{formatPostBodyCharCount(countPostBodyCharacters(post.body))}</span>
+															<span>{post.data.lang}</span>
+														</span>
+														<span class="archive-entry-title">{post.data.title}</span>
+														{tags.length > 0 && (
+															<span class="archive-entry-tags" aria-label="Tags">
+																{tags.slice(0, 3).map((tag) => (
+																	<span>{tag}</span>
+																))}
+															</span>
+														)}
+													</span>
+												</a>
+											</article>
+										);
+									})}
+								</div>
+							</section>
+						))
+					}
+				</div>
+			</div>
+
+			<aside class="sidebar archive-sidebar">
+				<div class="card sidebar-card">
+					<div class="sidebar-title">
+						<span>Tags</span>
+						<a class="badge" href="/magazine/archive" id="archive-view-all">View all</a>
+					</div>
+					<div class="tag-cloud">
+						{allTags.map(([tag, count]) => (
+							<a class="badge" href={`/magazine/archive?tag=${encodeURIComponent(tag)}`} data-archive-tag-link={tag}>
+								{tag} <span aria-hidden="true">·</span> {count}
+							</a>
+						))}
+					</div>
+				</div>
+
+				<div class="card sidebar-card">
+					<div class="sidebar-title">
+						<span>Months</span>
+					</div>
+					<div class="sidebar-list">
+						{months.map((item) => (
+							<a class="sidebar-item" href={`/magazine/archive?ym=${encodeURIComponent(item.ym)}`} data-archive-month-link={item.ym}>
+								<span class="sidebar-item-title">
+									{item.year} / {String(item.month).padStart(2, '0')}
+								</span>
+								<span class="sidebar-item-meta">{item.count} posts</span>
+							</a>
+						))}
+					</div>
+				</div>
+
+				<div class="card sidebar-card">
+					<div class="sidebar-title">
+						<span>Latest</span>
+					</div>
+					<div class="sidebar-list">
+						{latestPosts.map((post) => (
+							<a class="sidebar-item" href={`/magazine/blog/${post.id}/`}>
+								<span class="sidebar-item-title">{post.data.title}</span>
+								<span class="sidebar-item-meta">
+									<FormattedDate date={post.data.pubDate} />
+								</span>
+							</a>
+						))}
+					</div>
+				</div>
+			</aside>
+		</section>
+	</main>
+
+	<script is:inline data-astro-rerun>
+		(() => {
+			const tools = window.__pageStateTools;
+			if (!tools) return;
+			const page = tools.createCleanupContext('__magazineArchivePageCleanup');
+			const { on } = page;
+
+			const entries = Array.from(document.querySelectorAll('[data-archive-entry]'));
+			const groups = Array.from(document.querySelectorAll('[data-year-group]'));
+			const heading = document.getElementById('archive-heading');
+			const subtitle = document.getElementById('archive-subtitle');
+			const filterBar = document.getElementById('archive-filter-bar');
+			const filterLabel = document.getElementById('archive-filter-label');
+			const allLinks = Array.from(document.querySelectorAll('[data-archive-tag-link],[data-archive-month-link]'));
+			const total = entries.length;
+
+			const setParams = (next) => {
+				tools.updateQueryParams(next);
+				apply();
+			};
+
+			const apply = () => {
+				const params = new URLSearchParams(window.location.search);
+				const tag = params.get('tag')?.trim();
+				const ym = params.get('ym')?.trim();
+				let shown = 0;
+
+				for (const entry of entries) {
+					const tags = (entry.getAttribute('data-tags') ?? '')
+						.split(',')
+						.map((item) => item.trim())
+						.filter(Boolean);
+					const matchesTag = !tag || tags.includes(tag);
+					const matchesMonth = !ym || entry.getAttribute('data-ym') === ym;
+					const visible = matchesTag && matchesMonth;
+					entry.hidden = !visible;
+					if (visible) shown += 1;
+				}
+
+				for (const group of groups) {
+					const visibleEntries = Array.from(group.querySelectorAll('[data-archive-entry]')).filter((entry) => !entry.hidden);
+					group.hidden = visibleEntries.length === 0;
+				}
+
+				const labelParts = [];
+				if (tag) labelParts.push(`Tag: ${tag}`);
+				if (ym) labelParts.push(`Month: ${ym}`);
+				const label = labelParts.join(' / ');
+
+				if (heading) heading.textContent = `${label || 'All Posts'} - ${shown}`;
+				if (subtitle) subtitle.textContent = label ? `Showing ${shown} of ${total} posts / ${label}` : 'All posts in one flowing timeline.';
+				if (filterBar) filterBar.hidden = !label;
+				if (filterLabel) filterLabel.textContent = label;
+
+				for (const link of allLinks) {
+					const linkTag = link.getAttribute('data-archive-tag-link');
+					const linkMonth = link.getAttribute('data-archive-month-link');
+					if ((linkTag && linkTag === tag) || (linkMonth && linkMonth === ym)) link.setAttribute('aria-current', 'true');
+					else link.removeAttribute('aria-current');
+				}
+			};
+
+			for (const link of allLinks) {
+				on(link, 'click', (event) => {
+					const anchor = event.currentTarget;
+					if (!(anchor instanceof HTMLAnchorElement)) return;
+					const tag = anchor.getAttribute('data-archive-tag-link');
+					const ym = anchor.getAttribute('data-archive-month-link');
+					event.preventDefault();
+					setParams({ tag, ym });
+				});
+			}
+
+			on(window, 'popstate', apply);
+			apply();
+		})();
+	</script>
+</MagazineLayout>

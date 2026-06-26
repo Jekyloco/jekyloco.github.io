@@ -1,0 +1,463 @@
+---
+import { getCollection } from 'astro:content';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
+import { formatReadingDate, getReadingPreviewLines } from '../../data/readingEntries';
+import MagazineLayout from '../../layouts/MagazineLayout.astro';
+import AuthorAvatar from '../../images/murakami.jpg';
+
+const entries = (await getCollection('reading')).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+const kinds = [...new Set(entries.map((entry) => entry.data.kind))];
+const tags = [...new Set(entries.flatMap((entry) => entry.data.tags ?? []))].sort((a, b) => a.localeCompare(b));
+const recentAuthor = {
+	name: '村上春树',
+	avatar: AuthorAvatar,
+	description: '一个爱跑步，爱写作的老头。——《当我谈跑步时，我在谈些什么》再阅读ing~',
+};
+---
+
+<MagazineLayout title={`Reading · ${SITE_TITLE}`} description={SITE_DESCRIPTION}>
+	<main class="reading-magazine-shell">
+		<section class="reading-hero">
+			<div class="reading-hero-copy">
+				<p class="reading-kicker">拾瀚阁</p>
+				<h1 class="page-title">Reading</h1>
+				<p class="page-subtitle">让诗与文字一起流动，留一点温柔给日常的缝隙。</p>
+			</div>
+		</section>
+
+		<section class="split-layout reading-layout">
+			<div class="reading-shelf">
+				<a class="badge reading-clear" href="/magazine/reading" id="reading-clear" hidden>Clear filter</a>
+
+				<div class="reading-grid" id="reading-grid">
+					{entries.map((entry) => (
+						<article
+							class="reading-page-card"
+							data-reading-entry
+							data-kind={entry.data.kind}
+							data-tags={(entry.data.tags ?? []).join(',')}
+						>
+							<a href={`/magazine/reading/${entry.id}/`} class="reading-page-link">
+								<span class="reading-page-meta">
+									<time datetime={entry.data.pubDate.toISOString()}>{formatReadingDate(entry.data.pubDate)}</time>
+									<span>{entry.data.kind}</span>
+								</span>
+								<h3>{entry.data.title}</h3>
+								<blockquote>
+									{getReadingPreviewLines(entry.body).map((line) => <span>{line}</span>)}
+								</blockquote>
+								<span class="reading-page-tags">
+									{(entry.data.tags ?? []).slice(0, 4).map((tag) => (
+										<span>{tag}</span>
+									))}
+								</span>
+							</a>
+						</article>
+					))}
+				</div>
+
+				<nav class="reading-pagination" id="reading-pagination" aria-label="Reading pages" hidden>
+					<button class="badge" id="reading-prev" type="button">Prev</button>
+					<span id="reading-page-status"></span>
+					<button class="badge" id="reading-next" type="button">Next</button>
+				</nav>
+			</div>
+
+			<aside class="sidebar reading-sidebar">
+				<div class="card sidebar-card reading-author-card">
+					<div class="reading-author-avatar">
+						<img src={recentAuthor.avatar.src} width="150" height="150" alt={recentAuthor.name} loading="lazy" />
+					</div>
+					<div>
+						<p class="reading-author-label">最近灵魂交流的对象</p>
+						<h2 style="padding-top: 7px;">{recentAuthor.name}</h2>
+						<p>{recentAuthor.description}</p>
+					</div>
+				</div>
+
+				<div class="card sidebar-card">
+					<div class="sidebar-title">
+						<span>Types</span>
+						<a class="badge" href="/magazine/reading" data-reading-all>All</a>
+					</div>
+					<div class="reading-filter-list">
+						{kinds.map((kind) => (
+							<a href={`/magazine/reading?kind=${encodeURIComponent(kind)}`} data-reading-kind={kind}>
+								<span>{kind}</span>
+								<span>{entries.filter((entry) => entry.data.kind === kind).length}</span>
+							</a>
+						))}
+					</div>
+				</div>
+
+				<div class="card sidebar-card">
+					<div class="sidebar-title">
+						<span>Tags</span>
+					</div>
+					<div class="tag-cloud">
+						{tags.map((tag) => (
+							<a class="badge" href={`/magazine/reading?tag=${encodeURIComponent(tag)}`} data-reading-tag={tag}>
+								{tag}
+							</a>
+						))}
+					</div>
+				</div>
+			</aside>
+		</section>
+	</main>
+
+	<script is:inline data-astro-rerun>
+		(() => {
+			const tools = window.__pageStateTools;
+			if (!tools) return;
+			const page = tools.createCleanupContext('__magazineReadingPageCleanup');
+			const { on } = page;
+
+			const entries = Array.from(document.querySelectorAll('[data-reading-entry]'));
+			const links = Array.from(document.querySelectorAll('[data-reading-kind],[data-reading-tag],[data-reading-all]'));
+			const clear = document.getElementById('reading-clear');
+			const pagination = document.getElementById('reading-pagination');
+			const prev = document.getElementById('reading-prev');
+			const next = document.getElementById('reading-next');
+			const pageStatus = document.getElementById('reading-page-status');
+			const pageSize = 6;
+			let currentPage = 1;
+
+			const setParams = (next) => {
+				tools.updateQueryParams(next, { clearKeys: ['kind', 'tag'] });
+				currentPage = 1;
+				apply();
+			};
+
+			const apply = () => {
+				const params = new URLSearchParams(window.location.search);
+				const kind = params.get('kind');
+				const tag = params.get('tag');
+				const filtered = [];
+
+				for (const entry of entries) {
+					const tags = (entry.getAttribute('data-tags') ?? '').split(',').filter(Boolean);
+					const visible = (!kind || entry.getAttribute('data-kind') === kind) && (!tag || tags.includes(tag));
+					if (visible) filtered.push(entry);
+					entry.hidden = true;
+				}
+
+				const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
+				currentPage = Math.min(currentPage, pages);
+				const start = (currentPage - 1) * pageSize;
+				for (const entry of filtered.slice(start, start + pageSize)) entry.hidden = false;
+
+				if (clear) clear.hidden = !(kind || tag);
+				if (pagination && prev instanceof HTMLButtonElement && next instanceof HTMLButtonElement) {
+					pagination.hidden = filtered.length <= pageSize;
+					prev.disabled = currentPage <= 1;
+					next.disabled = currentPage >= pages;
+				}
+				if (pageStatus) pageStatus.textContent = `Page ${currentPage} / ${pages}`;
+
+				for (const link of links) {
+					const active =
+						(link.getAttribute('data-reading-kind') && link.getAttribute('data-reading-kind') === kind) ||
+						(link.getAttribute('data-reading-tag') && link.getAttribute('data-reading-tag') === tag);
+					if (active) link.setAttribute('aria-current', 'true');
+					else link.removeAttribute('aria-current');
+				}
+			};
+
+			for (const link of links) {
+				on(link, 'click', (event) => {
+					const anchor = event.currentTarget;
+					if (!(anchor instanceof HTMLAnchorElement)) return;
+					event.preventDefault();
+					setParams({
+						kind: anchor.getAttribute('data-reading-kind'),
+						tag: anchor.getAttribute('data-reading-tag'),
+					});
+				});
+			}
+
+			if (clear instanceof HTMLAnchorElement) {
+				on(clear, 'click', (event) => {
+					event.preventDefault();
+					setParams({});
+				});
+			}
+			if (prev instanceof HTMLButtonElement) {
+				on(prev, 'click', () => {
+					currentPage = Math.max(1, currentPage - 1);
+					apply();
+				});
+			}
+			if (next instanceof HTMLButtonElement) {
+				on(next, 'click', () => {
+					currentPage += 1;
+					apply();
+				});
+			}
+
+			on(window, 'popstate', apply);
+			apply();
+		})();
+	</script>
+
+	<style>
+		.reading-magazine-shell {
+			--container: 1320px;
+			--reading-card-height: 240px;
+			padding-top: 0;
+		}
+
+		.reading-hero {
+			margin: 1.25rem 0 1rem;
+		}
+
+		.reading-hero-copy {
+			width: 100%;
+			padding: 1.2rem 1.25rem;
+			margin-bottom: 15px;
+			border: 1px solid var(--border-ink);
+			background: rgba(255, 255, 255, 0.2);
+		}
+
+		.reading-kicker {
+			margin: 0 0 0.35rem;
+			font-family: var(--magazine-mono);
+			color: var(--color-accent-green);
+			font-size: 0.92rem;
+			font-weight: 700;
+			letter-spacing: 0.18em;
+			text-transform: uppercase;
+		}
+
+		.reading-layout {
+			grid-template-columns: minmax(0, 1fr) 300px;
+			align-items: stretch;
+		}
+
+		.reading-shelf {
+			min-width: 0;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.reading-clear {
+			margin: 0 0 0.85rem;
+		}
+
+		.reading-grid {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			grid-auto-rows: var(--reading-card-height);
+			gap: 1rem;
+		}
+
+		.reading-page-card {
+			height: var(--reading-card-height);
+			perspective: 1000px;
+		}
+
+		.reading-page-link {
+			position: relative;
+			display: flex;
+			flex-direction: column;
+			height: 100%;
+			padding: 1.35rem 1.35rem 1.15rem;
+			border: 1px solid var(--border-ink);
+			border-radius: 0;
+			background: linear-gradient(90deg, rgba(255, 255, 255, 0.18), transparent 1.2rem), rgba(255, 255, 255, 0.12);
+			text-decoration: none;
+			color: var(--text-ink);
+			overflow: hidden;
+			transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+		}
+
+		.reading-page-link::before,
+		.reading-page-link::after {
+			content: '';
+			position: absolute;
+			pointer-events: none;
+		}
+
+		.reading-page-link::before {
+			inset: auto auto 0 0;
+			width: 120px;
+			height: 120px;
+			background: radial-gradient(circle, rgba(27, 77, 62, 0.08), transparent 70%);
+		}
+
+		.reading-page-link::after {
+			inset: 0;
+			border-right: 1px solid rgba(27, 77, 62, 0.08);
+			transform: translateX(72%);
+		}
+
+		.reading-page-card:hover .reading-page-link {
+			transform: translateY(-4px) rotateX(1.4deg);
+			border-color: rgba(27, 77, 62, 0.42);
+			box-shadow: var(--shadow);
+		}
+
+		.reading-page-meta {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.45rem 0.9rem;
+			font-family: var(--magazine-mono);
+			font-size: var(--magazine-label-size);
+			font-weight: 700;
+			text-transform: uppercase;
+			letter-spacing: 0.14em;
+			opacity: 0.67;
+		}
+
+		.reading-page-link h3 {
+			margin: 0.55rem 0 0.65rem;
+			font-size: clamp(1.25rem, 2.6vw, 1.85rem);
+			line-height: 1.14;
+			letter-spacing: -0.02em;
+		}
+
+		.reading-page-link blockquote {
+			margin: 0;
+			padding: 0;
+			border: none;
+			display: grid;
+			gap: 0.15rem;
+			font-size: 1rem;
+			line-height: 1.6;
+			opacity: 0.82;
+		}
+
+		.reading-page-link blockquote span {
+			display: block;
+		}
+
+		.reading-page-tags {
+			margin-top: auto;
+			padding-top: 0.9rem;
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.45rem;
+		}
+
+		.reading-page-tags span {
+			font-family: var(--magazine-mono);
+			font-size: var(--magazine-label-size);
+			font-weight: 700;
+			text-transform: uppercase;
+			letter-spacing: 0.14em;
+			padding-bottom: 0.08rem;
+			border-bottom: 1px solid var(--border-ink);
+			opacity: 0.8;
+		}
+
+		.reading-pagination {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 1rem;
+			margin-top: 1rem;
+		}
+
+		.reading-sidebar {
+			position: sticky;
+			top: 1rem;
+		}
+
+		.reading-author-card {
+			display: grid;
+			gap: 1rem;
+		}
+
+		.reading-author-avatar {
+			aspect-ratio: 1;
+			overflow: hidden;
+		}
+
+		.reading-author-avatar img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+
+		.reading-author-label {
+			font-family: var(--magazine-mono);
+			font-size: var(--magazine-label-size);
+			font-weight: 700;
+			text-transform: uppercase;
+			letter-spacing: 0.16em;
+			opacity: 0.68;
+		}
+
+		.reading-author-card h2 {
+			margin: 0;
+			font-size: 1.5rem;
+		}
+
+		.reading-author-card p:last-child {
+			margin-bottom: 0;
+		}
+
+		.reading-filter-list {
+			display: grid;
+			gap: 0.5rem;
+		}
+
+		.reading-filter-list a {
+			display: flex;
+			justify-content: space-between;
+			gap: 1rem;
+			padding: 0.75rem 0.85rem;
+			border: 1px solid var(--border-ink);
+			color: var(--text-ink);
+			text-decoration: none;
+			font-size: 0.98rem;
+			transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+		}
+
+		.reading-filter-list a:hover {
+			transform: translateX(2px);
+			border-color: var(--color-accent-green);
+			background: rgba(27, 77, 62, 0.04);
+		}
+
+		.reading-filter-list a[aria-current='true'],
+		.reading-sidebar .tag-cloud [aria-current='true'] {
+			border-color: rgba(27, 77, 62, 0.42);
+			background: rgba(27, 77, 62, 0.12);
+		}
+
+		@media (max-width: 900px) {
+			.reading-grid {
+				grid-template-columns: 1fr;
+			}
+
+			.reading-sidebar {
+				position: static;
+			}
+
+			.reading-layout {
+				grid-template-columns: 1fr;
+			}
+		}
+
+		@media (max-width: 720px) {
+			.reading-hero-copy {
+				padding: 1rem;
+			}
+
+			.reading-page-link {
+				padding: 1rem;
+			}
+
+			.reading-page-link h3 {
+				font-size: 1.2rem;
+			}
+
+			.reading-page-link blockquote {
+				font-size: 0.95rem;
+			}
+		}
+	</style>
+</MagazineLayout>

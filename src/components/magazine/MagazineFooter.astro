@@ -1,0 +1,44 @@
+---
+const today = new Date();
+---
+
+<footer class="magazine-footer">
+	<div class="magazine-footer-inner">
+		<span class="magazine-footer-line">
+			&copy; {today.getFullYear()} — ALL RIGHTS RESERVED
+		</span>
+		<span class="magazine-footer-line">
+			CONTACT — JEKYLOCO@GMAIL.COM
+		</span>
+	</div>
+</footer>
+
+<style>
+	.magazine-footer {
+		width: 100%;
+		border-top: 1px solid var(--border-ink);
+		background: var(--bg-paper);
+		margin-top: auto;
+	}
+
+	.magazine-footer-inner {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.45rem;
+		width: 100%;
+		padding: clamp(1.25rem, 2.5vw, 1.75rem) var(--magazine-gutter);
+		text-align: center;
+	}
+
+	.magazine-footer-line {
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.2em;
+		color: var(--text-ink);
+		line-height: 1.4;
+	}
+</style>

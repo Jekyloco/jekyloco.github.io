@@ -129,6 +129,14 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 					/>
 				</svg>
 			</a>
+			<a class="btn-icon nav-magazine-button" href="/magazine" aria-label="Switch to magazine">
+				<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+					<path
+						fill="currentColor"
+						d="M4 5.5A1.5 1.5 0 015.5 4h13A1.5 1.5 0 0120 5.5v13a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 18.5v-13zm2 1V18h12V6.5H6zm2 1.5h8v2H8v-2zm0 4h8v2H8v-2z"
+					/>
+				</svg>
+			</a>
 			<button class="btn-icon" id="theme-toggle" type="button" aria-label="Toggle theme">
 				<svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
 					<path
@@ -625,6 +633,10 @@ const audioLoop = musicRandom && musicPlaylist.length > 1 ? false : musicLoop;
 		color: rgb(var(--black));
 		background: rgba(var(--gray-light), 0.35);
 		border: 1px solid rgb(var(--border));
+	}
+
+	.nav-magazine-button {
+		text-decoration: none;
 	}
 	.actions {
 		display: flex;

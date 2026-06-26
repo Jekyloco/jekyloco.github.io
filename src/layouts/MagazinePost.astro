@@ -1,0 +1,343 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import BaseHead from '../components/BaseHead.astro';
+import MagazineHeader from '../components/magazine/MagazineHeader.astro';
+import MagazineFooter from '../components/magazine/MagazineFooter.astro';
+import { formatPostBodyCharCount } from '../utils/postBodyStats';
+
+type Props = {
+	title: string;
+	description: string;
+	pubDate: Date;
+	updatedDate?: Date;
+	heroImage?: CollectionEntry<'blog'>['data']['heroImage'];
+	tags?: string[];
+	lang?: string;
+	bodyCharCount?: number;
+	backHref?: string;
+	backLabel?: string;
+};
+
+const {
+	title,
+	description,
+	pubDate,
+	updatedDate,
+	heroImage,
+	tags = [],
+	lang,
+	bodyCharCount,
+	backHref = '/magazine',
+	backLabel = 'BACK TO INDEX',
+} = Astro.props;
+
+const formatMachineDate = (date: Date) => {
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, '0');
+	return `${year}-${month}-${day}`;
+};
+
+const monthYm = `${pubDate.getFullYear()}-${String(pubDate.getMonth() + 1).padStart(2, '0')}`;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={title} description={description} />
+	</head>
+	<body class="magazine-body">
+		<div class="theme-magazine">
+			<MagazineHeader />
+			<main class="magazine-main magazine-post-main">
+				<article class="magazine-post">
+					<header class="magazine-post-header">
+						<a class="magazine-back-link" href={backHref}>{backLabel}</a>
+						<div class="magazine-post-meta">
+							<time datetime={formatMachineDate(pubDate)}>{formatMachineDate(pubDate)}</time>
+							{typeof bodyCharCount === 'number' && (
+								<span>{formatPostBodyCharCount(bodyCharCount)}</span>
+							)}
+							{lang && <span>{lang}</span>}
+							{updatedDate && (
+								<span>UPDATED {formatMachineDate(updatedDate)}</span>
+							)}
+						</div>
+						<h1 class="magazine-post-title">{title}</h1>
+						{description && <p class="magazine-post-lead">{description}</p>}
+						{tags.length > 0 && (
+							<div class="magazine-post-tags" aria-label="Tags">
+								{tags.map((tag) => (
+									<a class="magazine-post-tag" href={`/blog?tag=${encodeURIComponent(tag)}`}>
+										{tag}
+									</a>
+								))}
+							</div>
+						)}
+					</header>
+
+					{heroImage && (
+						<div class="magazine-post-hero" aria-hidden="true">
+							<img src={heroImage.src} width="1600" height="900" alt="" loading="eager" />
+						</div>
+					)}
+
+					<div class="magazine-prose">
+						<slot />
+					</div>
+
+					<footer class="magazine-post-footer">
+						<a class="magazine-back-link" href={`/magazine/month/${monthYm}`}>
+							MORE FROM {monthYm.replace('-', ' / ')}
+						</a>
+						<a class="magazine-back-link" href="/magazine">BACK TO INDEX</a>
+					</footer>
+				</article>
+			</main>
+			<MagazineFooter />
+		</div>
+	</body>
+</html>
+
+<style>
+	:global(body.magazine-body) {
+		margin: 0;
+		min-height: 100vh;
+		min-height: 100dvh;
+		background: var(--bg-paper, #efe9dc);
+		color: var(--text-ink, #1a1a1a);
+	}
+
+	.theme-magazine {
+		--bg-paper: #efe9dc;
+		--text-ink: #1a1a1a;
+		--color-accent-green: #1b4d3e;
+		--color-accent-orange: #e67e22;
+		--border-ink: rgba(26, 26, 26, 0.2);
+		--magazine-gutter: clamp(1.5rem, 4vw, 3.5rem);
+		--magazine-mono: ui-monospace, 'Cascadia Code', 'Courier New', monospace;
+		--magazine-title-size: clamp(2.5rem, 6vw, 4.75rem);
+		--magazine-lead-size: clamp(1.2rem, 2.4vw, 1.85rem);
+		--magazine-body-size: clamp(1.05rem, 1.35vw, 1.28rem);
+		--magazine-label-size: clamp(0.68rem, 1vw, 0.78rem);
+
+		width: 100%;
+		min-height: 100vh;
+		min-height: 100dvh;
+		display: flex;
+		flex-direction: column;
+		background: var(--bg-paper);
+		color: var(--text-ink);
+		font-family: var(--font-atkinson), Georgia, 'Times New Roman', serif;
+		font-size: var(--magazine-body-size);
+		line-height: 1.65;
+	}
+
+	.magazine-main {
+		flex: 1;
+		width: 100%;
+		max-width: none;
+		margin: 0;
+		padding: 0 var(--magazine-gutter) clamp(3rem, 6vw, 5rem);
+	}
+
+	.magazine-post-main {
+		padding-top: clamp(1.5rem, 3vw, 2.5rem);
+	}
+
+	.magazine-post {
+		width: 100%;
+	}
+
+	.magazine-back-link {
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.18em;
+		text-decoration: none;
+		color: var(--text-ink);
+		transition: color 120ms ease;
+	}
+
+	.magazine-back-link:hover {
+		color: var(--color-accent-green);
+	}
+
+	.magazine-post-header {
+		padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
+		border-bottom: 1px solid var(--border-ink);
+	}
+
+	.magazine-post-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem 1.25rem;
+		margin: 0.75rem 0 1.25rem;
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+		color: var(--text-ink);
+		opacity: 0.7;
+	}
+
+	.magazine-post-title {
+		margin: 0;
+		font-size: var(--magazine-title-size);
+		font-weight: 750;
+		line-height: 1.08;
+		letter-spacing: -0.03em;
+		color: var(--text-ink);
+	}
+
+	.magazine-post-lead {
+		margin: clamp(0.75rem, 2vw, 1.25rem) 0 0;
+		font-size: var(--magazine-lead-size);
+		line-height: 1.45;
+		color: var(--text-ink);
+		opacity: 0.82;
+		max-width: 72ch;
+	}
+
+	.magazine-post-tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem 1rem;
+		margin-top: 1.25rem;
+	}
+
+	.magazine-post-tag {
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.12em;
+		text-decoration: none;
+		color: var(--color-accent-green);
+		border-bottom: 1px solid var(--border-ink);
+		padding-bottom: 0.1rem;
+	}
+
+	.magazine-post-tag:hover {
+		border-color: var(--color-accent-green);
+	}
+
+	.magazine-post-hero {
+		margin: clamp(1.5rem, 3vw, 2.5rem) 0;
+		border-bottom: 1px solid var(--border-ink);
+	}
+
+	.magazine-post-hero img {
+		display: block;
+		width: 100%;
+		height: auto;
+		max-height: min(72vh, 820px);
+		object-fit: cover;
+	}
+
+	.magazine-prose {
+		padding-top: clamp(1.5rem, 3vw, 2.5rem);
+		font-size: var(--magazine-body-size);
+		line-height: 1.88;
+		color: var(--text-ink);
+	}
+
+	.magazine-prose :global(h2) {
+		margin: 2.25rem 0 1rem;
+		font-size: clamp(1.35rem, 2.5vw, 1.85rem);
+		font-weight: 750;
+		line-height: 1.2;
+		letter-spacing: -0.02em;
+	}
+
+	.magazine-prose :global(h3) {
+		margin: 1.75rem 0 0.75rem;
+		font-size: clamp(1.15rem, 2vw, 1.45rem);
+		font-weight: 700;
+		line-height: 1.25;
+	}
+
+	.magazine-prose :global(p) {
+		margin: 0 0 1.35em;
+	}
+
+	.magazine-prose :global(a) {
+		color: var(--color-accent-green);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+
+	.magazine-prose :global(a:hover) {
+		color: var(--color-accent-orange);
+	}
+
+	.magazine-prose :global(img) {
+		display: block;
+		width: 100%;
+		height: auto;
+		margin: 1.75rem 0;
+		border-radius: 0;
+	}
+
+	.magazine-prose :global(blockquote) {
+		margin: 1.5rem 0;
+		padding: 0 0 0 1.25rem;
+		border-left: 2px solid var(--text-ink);
+		font-size: inherit;
+		line-height: inherit;
+	}
+
+	.magazine-prose :global(blockquote p:last-child) {
+		margin-bottom: 0;
+	}
+
+	.magazine-prose :global(pre) {
+		margin: 1.5rem 0;
+		padding: 1.25rem 1.35rem;
+		border: 1px solid var(--border-ink);
+		border-radius: 0;
+		background: rgba(26, 26, 26, 0.04);
+		overflow-x: auto;
+		font-size: 0.92em;
+		line-height: 1.55;
+	}
+
+	.magazine-prose :global(code) {
+		padding: 0.1em 0.35em;
+		border-radius: 0;
+		background: rgba(26, 26, 26, 0.06);
+		font-size: 0.92em;
+	}
+
+	.magazine-prose :global(pre code) {
+		padding: 0;
+		background: none;
+	}
+
+	.magazine-prose :global(hr) {
+		margin: 2rem 0;
+		border: none;
+		border-top: 1px solid var(--border-ink);
+	}
+
+	.magazine-prose :global(ul),
+	.magazine-prose :global(ol) {
+		margin: 0 0 1.35em;
+		padding-left: 1.35em;
+	}
+
+	.magazine-prose :global(li) {
+		margin-bottom: 0.35em;
+	}
+
+	.magazine-post-footer {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem 2rem;
+		margin-top: clamp(2.5rem, 5vw, 4rem);
+		padding-top: 1.5rem;
+		border-top: 1px solid var(--border-ink);
+	}
+</style>

@@ -1,0 +1,286 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { countPostBodyCharacters, formatPostBodyCharCount } from '../../utils/postBodyStats';
+import { resolvePostDescription } from '../../utils/postDescription';
+
+interface Props {
+	posts: CollectionEntry<'blog'>[];
+}
+
+const { posts } = Astro.props;
+
+const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+type MonthRow = { ym: string; year: number; month: number; count: number; posts: CollectionEntry<'blog'>[] };
+
+const monthCounts = new Map<string, CollectionEntry<'blog'>[]>();
+for (const post of posts) {
+	const year = post.data.pubDate.getFullYear();
+	const month = post.data.pubDate.getMonth() + 1;
+	const ym = `${year}-${String(month).padStart(2, '0')}`;
+	monthCounts.set(ym, [...(monthCounts.get(ym) ?? []), post]);
+}
+
+const months: MonthRow[] = [...monthCounts.entries()]
+	.map(([ym, monthPosts]) => {
+		const [year, month] = ym.split('-').map((n) => Number.parseInt(n, 10));
+		return {
+			ym,
+			year,
+			month,
+			count: monthPosts.length,
+			posts: monthPosts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()),
+		};
+	})
+	.sort((a, b) => b.ym.localeCompare(a.ym));
+
+const formatMonthLabel = (month: number, year: number) => `${MONTH_NAMES[month - 1]} / ${year}`;
+
+const formatMachineDate = (date: Date) => {
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, '0');
+	return `${year}-${month}-${day}`;
+};
+---
+
+<section class="magazine-list" id="archive" aria-label="Archive index">
+	<div class="magazine-list-header">
+		<div>
+			<h2 class="magazine-list-title">INDEX</h2>
+			<p class="magazine-list-subtitle">Expand a month to browse its articles in magazine cards.</p>
+		</div>
+		<span class="magazine-list-total">{posts.length} ARTICLES TOTAL</span>
+	</div>
+
+	<div class="magazine-months" id="magazine-months">
+		{months.map((item, index) => (
+			<details class="magazine-month" data-month-row data-month-ym={item.ym} open={index === 0}>
+				<summary class="magazine-month-summary">
+					<span class="magazine-month-name">{formatMonthLabel(item.month, item.year)}</span>
+					<span class="magazine-month-count">
+						{item.count} {item.count === 1 ? 'ARTICLE' : 'ARTICLES'}
+					</span>
+				</summary>
+				<div class="magazine-month-grid">
+					{item.posts.map((post) => {
+						const tags = post.data.tags ?? [];
+						const description = resolvePostDescription(post.data.description, post.body, post.data.title);
+						return (
+							<article class="magazine-month-card">
+								<a class="magazine-month-card-link" href={`/magazine/blog/${post.id}/`}>
+									<div class="magazine-month-card-meta">
+										<time datetime={formatMachineDate(post.data.pubDate)}>
+											{formatMachineDate(post.data.pubDate)}
+										</time>
+										<span>{formatPostBodyCharCount(countPostBodyCharacters(post.body))}</span>
+										<span>{post.data.lang}</span>
+									</div>
+									<h3 class="magazine-month-card-title">{post.data.title}</h3>
+									<p class="magazine-month-card-desc">{description}</p>
+									{tags.length > 0 && (
+										<div class="magazine-month-card-tags" aria-label="Tags">
+											{tags.slice(0, 4).map((tag) => (
+												<span class="magazine-month-card-tag">{tag}</span>
+											))}
+										</div>
+									)}
+									<span class="magazine-month-card-read">READ ARTICLE</span>
+								</a>
+							</article>
+						);
+					})}
+				</div>
+			</details>
+		))}
+	</div>
+</section>
+
+<style>
+	.magazine-list {
+		padding-top: clamp(2rem, 4vw, 3.5rem);
+		width: 100%;
+	}
+
+	.magazine-list-header {
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 1.5rem;
+		padding-bottom: clamp(0.85rem, 2vw, 1.25rem);
+		border-bottom: 1px solid var(--border-ink);
+		margin-bottom: 1rem;
+	}
+
+	.magazine-list-title {
+		margin: 0;
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.22em;
+		color: var(--text-ink);
+		line-height: 1;
+	}
+
+	.magazine-list-subtitle {
+		margin: 0.35rem 0 0;
+		font-size: clamp(0.95rem, 1.35vw, 1.1rem);
+		line-height: 1.55;
+		opacity: 0.74;
+	}
+
+	.magazine-list-total {
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.18em;
+		color: var(--text-ink);
+		opacity: 0.65;
+		line-height: 1;
+		white-space: nowrap;
+	}
+
+	.magazine-months {
+		display: grid;
+		gap: 0.85rem;
+	}
+
+	.magazine-month {
+		border: 1px solid var(--border-ink);
+		background: rgba(255, 255, 255, 0.16);
+		padding: 0.9rem 1rem 1rem;
+	}
+
+	.magazine-month[open] {
+		background: rgba(27, 77, 62, 0.035);
+	}
+
+	.magazine-month-summary {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+		cursor: pointer;
+		list-style: none;
+		font-family: var(--magazine-mono);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+	}
+
+	.magazine-month-summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.magazine-month-name {
+		font-size: clamp(1rem, 2vw, 1.35rem);
+	}
+
+	.magazine-month-count {
+		font-size: var(--magazine-label-size);
+		opacity: 0.65;
+	}
+
+	.magazine-month-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.85rem;
+		padding-top: 0.95rem;
+	}
+
+	.magazine-month-card {
+		min-width: 0;
+	}
+
+	.magazine-month-card-link {
+		display: grid;
+		gap: 0.45rem;
+		height: 100%;
+		padding: 1rem 1rem 1.05rem;
+		border: 1px solid rgba(26, 26, 26, 0.12);
+		text-decoration: none;
+		color: var(--text-ink);
+		transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+	}
+
+	.magazine-month-card-link:hover {
+		border-color: var(--color-accent-green);
+		background: rgba(27, 77, 62, 0.04);
+		transform: translateY(-1px);
+	}
+
+	.magazine-month-card-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.45rem 0.95rem;
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+		opacity: 0.67;
+	}
+
+	.magazine-month-card-title {
+		margin: 0;
+		font-size: clamp(1.15rem, 2.5vw, 1.75rem);
+		line-height: 1.16;
+		letter-spacing: -0.02em;
+	}
+
+	.magazine-month-card-desc {
+		margin: 0;
+		font-size: clamp(0.98rem, 1.3vw, 1.12rem);
+		line-height: 1.65;
+		opacity: 0.8;
+	}
+
+	.magazine-month-card-tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.45rem;
+	}
+
+	.magazine-month-card-tag,
+	.magazine-month-card-read {
+		font-family: var(--magazine-mono);
+		font-size: var(--magazine-label-size);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+	}
+
+	.magazine-month-card-tag {
+		padding-bottom: 0.08rem;
+		border-bottom: 1px solid var(--border-ink);
+		opacity: 0.78;
+	}
+
+	.magazine-month-card-read {
+		color: var(--color-accent-green);
+	}
+
+	@media (max-width: 900px) {
+		.magazine-month-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	@media (max-width: 720px) {
+		.magazine-list-header {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+
+		.magazine-month {
+			padding-inline: 0.85rem;
+		}
+
+		.magazine-month-summary {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+	}
+</style>
